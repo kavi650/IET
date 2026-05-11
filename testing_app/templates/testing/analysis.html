@@ -1,0 +1,224 @@
+{% extends "testing/base.html" %}
+{% block title %}Analysis — Testiny{% endblock %}
+{% block page_title %}<i class="fas fa-chart-line" style="color:var(--accent);margin-right:8px"></i>Analysis{% endblock %}
+
+{% block content %}
+<!-- Session selector bar -->
+<div style="display:flex;align-items:center;gap:12px;margin-bottom:24px;flex-wrap:wrap">
+    <select id="sessionSelect"
+        style="flex:1;min-width:220px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:9px 14px;color:var(--text-primary);font-family:var(--font-main);font-size:13px">
+        <option value="">— Select a session —</option>
+    </select>
+    <input type="number" id="sessionIdInput" placeholder="or type Session ID"
+        style="width:180px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:9px 14px;color:var(--text-primary);font-family:var(--font-main);font-size:13px">
+    <button class="t-btn t-btn-primary" onclick="loadAnalysis()"><i class="fas fa-search"></i> Analyse</button>
+    <a href="/live" class="t-btn" style="background:rgba(0,200,255,.1);color:#00c8ff;border:1px solid rgba(0,200,255,.25);text-decoration:none">
+        <i class="fas fa-circle-dot"></i> Live Test
+    </a>
+</div>
+
+<div id="analysisContent" style="display:none">
+    <div id="sessionInfoBanner" class="t-alert t-alert-info" style="margin-bottom:20px"></div>
+    <div class="t-kpi-grid" id="statsGrid"></div>
+
+    <div class="t-grid-2" style="margin-bottom:24px">
+        <div class="t-card"><div class="t-card-title">Pressure vs Time (bar)</div><div id="chartPressure" class="t-chart"></div></div>
+        <div class="t-card"><div class="t-card-title">Temperature vs Time (°C)</div><div id="chartTemp" class="t-chart"></div></div>
+    </div>
+    <div class="t-grid-2" style="margin-bottom:24px">
+        <div class="t-card"><div class="t-card-title">Leakage (mL/min)</div><div id="chartLeakage" class="t-chart"></div></div>
+        <div class="t-card"><div class="t-card-title">Flow Rate (L/min)</div><div id="chartFlow" class="t-chart"></div></div>
+    </div>
+
+    <div class="t-card" style="margin-bottom:24px">
+        <div class="t-card-title"><i class="fas fa-chart-line" style="color:#00c8ff;margin-right:8px"></i>All Channels Overlay</div>
+        <div id="chartCombined" style="min-height:260px"></div>
+    </div>
+
+    <div class="t-card">
+        <div class="t-card-title">Alert Summary</div>
+        <div id="alertSummary" class="t-grid-3"></div>
+    </div>
+</div>
+
+<div id="noData" style="text-align:center;padding:60px;color:var(--text-muted)">
+    <i class="fas fa-chart-line" style="font-size:48px;margin-bottom:16px;display:block;opacity:.3"></i>
+    Select a session above or enter a Session ID to load analysis
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const DARK_OPTS = {
+    chart:{ background:'transparent', toolbar:{ show:false } },
+    theme:{ mode:'dark' },
+    grid:{ borderColor:'#1e2d45' },
+    tooltip:{ theme:'dark' }
+};
+
+let chartInstances = [];
+function destroyCharts() {
+    chartInstances.forEach(c => { try { c.destroy(); } catch(e){} });
+    chartInstances = [];
+}
+
+function mkChart(el, color, name, ts, values) {
+    const data = ts.map((t,i) => ({ x: new Date(t).getTime(), y: values[i] })).filter(p => p.y != null);
+    const c = new ApexCharts(document.getElementById(el), {
+        ...DARK_OPTS,
+        series:[{ name, data }], colors:[color],
+        chart:{ ...DARK_OPTS.chart, type:'area', height:260, animations:{ enabled:false } },
+        xaxis:{ type:'datetime', labels:{ style:{ colors:'#6b7fa3' } } },
+        yaxis:{ labels:{ style:{ colors:'#6b7fa3' } } },
+        stroke:{ width:2 },
+        fill:{ type:'gradient', gradient:{ opacityFrom:.3, opacityTo:.02 } },
+    });
+    c.render(); chartInstances.push(c);
+}
+
+function mkCombined(ts, pd, td, fd, ld) {
+    const pts = (vals) => ts.map((t,i) => ({ x: new Date(t).getTime(), y: vals[i] })).filter(p => p.y != null);
+    const c = new ApexCharts(document.getElementById('chartCombined'), {
+        ...DARK_OPTS,
+        series:[
+            { name:'Pressure (bar)',    data: pts(pd) },
+            { name:'Temperature (°C)', data: pts(td) },
+            { name:'Flow (L/min)',      data: pts(fd) },
+            { name:'Leakage (mL/min)', data: pts(ld) },
+        ],
+        colors:['#00c8ff','#f59e0b','#00e676','#ff6b6b'],
+        chart:{ ...DARK_OPTS.chart, type:'line', height:260, animations:{enabled:false} },
+        stroke:{ width:[2,2,2,2], curve:'smooth' },
+        xaxis:{ type:'datetime', labels:{ style:{ colors:'#6b7fa3' } } },
+        yaxis:{ labels:{ style:{ colors:'#6b7fa3' } } },
+        legend:{ labels:{ colors:'#8898b3' } },
+        tooltip:{ ...DARK_OPTS.tooltip, shared:true, intersect:false },
+    });
+    c.render(); chartInstances.push(c);
+}
+
+function alertBar(label, counts) {
+    const total = (counts.ok||0)+(counts.warning||0)+(counts.critical||0);
+    const okP = total ? Math.round((counts.ok||0)/total*100) : 100;
+    const wP  = total ? Math.round((counts.warning||0)/total*100) : 0;
+    const cP  = total ? Math.round((counts.critical||0)/total*100) : 0;
+    return `<div class="t-card" style="padding:16px">
+        <div style="font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:10px">${label}</div>
+        <div style="display:flex;gap:16px;font-size:13px;margin-bottom:8px">
+            <span style="color:var(--success)"><i class="fas fa-circle-check"></i> OK: ${counts.ok||0}</span>
+            <span style="color:var(--warning)"><i class="fas fa-exclamation-circle"></i> Warn: ${counts.warning||0}</span>
+            <span style="color:var(--danger)"><i class="fas fa-times-circle"></i> Crit: ${counts.critical||0}</span>
+        </div>
+        <div style="display:flex;height:6px;border-radius:4px;overflow:hidden;background:rgba(255,255,255,.06)">
+            <div style="width:${okP}%;background:var(--success)"></div>
+            <div style="width:${wP}%;background:var(--warning)"></div>
+            <div style="width:${cP}%;background:var(--danger)"></div>
+        </div>
+    </div>`;
+}
+
+async function loadAnalysis() {
+    const id = document.getElementById('sessionIdInput').value.trim()
+             || document.getElementById('sessionSelect').value;
+    if (!id) { alert('Please select or enter a session ID.'); return; }
+
+    document.getElementById('analysisContent').style.display = 'none';
+    document.getElementById('noData').style.display = '';
+    document.getElementById('noData').innerHTML =
+        '<i class="fas fa-spinner fa-spin" style="font-size:32px;display:block;margin-bottom:12px"></i>Loading…';
+    destroyCharts();
+
+    const res = await apiFetch(`/api/tests/analysis/session/${id}`);
+    if (!res.ok) {
+        document.getElementById('noData').innerHTML =
+            '<i class="fas fa-exclamation-triangle" style="font-size:40px;opacity:.5;display:block;margin-bottom:12px;color:var(--danger)"></i>Session not found or access denied.';
+        return;
+    }
+    const data = await res.json();
+    const ts   = data.chart_data?.timestamps || [];
+
+    if (!ts.length) {
+        document.getElementById('noData').innerHTML =
+            '<i class="fas fa-inbox" style="font-size:40px;opacity:.3;display:block;margin-bottom:12px"></i>No readings found for this session yet.';
+        return;
+    }
+
+    document.getElementById('noData').style.display = 'none';
+    document.getElementById('analysisContent').style.display = '';
+
+    const s = data.session, st = data.stats, cd = data.chart_data;
+    const rc = s.result === 'passed' ? 'var(--success)' : s.result === 'failed' ? 'var(--danger)' : 'var(--warning)';
+
+    document.getElementById('sessionInfoBanner').innerHTML =
+        `<i class="fas fa-flask"></i>
+         <span><strong>${s.session_code}</strong> &nbsp;|&nbsp; ${s.valve_id||'No Valve ID'} &nbsp;|&nbsp; ${s.test_type} &nbsp;|&nbsp; ${s.client_name||'—'}</span>
+         <span style="margin-left:auto;color:${rc};font-weight:700;text-transform:uppercase">${s.result||s.status}</span>`;
+
+    document.getElementById('statsGrid').innerHTML = `
+        <div class="t-kpi" style="--kpi-color:#00c8ff">
+            <div class="t-kpi-label">Max Pressure</div>
+            <div class="t-kpi-value">${st.pressure.max!=null?Number(st.pressure.max).toFixed(1):'—'}</div>
+            <div class="t-kpi-sub">bar (avg: ${st.pressure.avg!=null?Number(st.pressure.avg).toFixed(1):'—'})</div>
+            <i class="fas fa-gauge-high t-kpi-icon"></i>
+        </div>
+        <div class="t-kpi" style="--kpi-color:#f59e0b">
+            <div class="t-kpi-label">Max Temperature</div>
+            <div class="t-kpi-value">${st.temperature.max!=null?Number(st.temperature.max).toFixed(1):'—'}</div>
+            <div class="t-kpi-sub">°C</div>
+            <i class="fas fa-temperature-half t-kpi-icon"></i>
+        </div>
+        <div class="t-kpi" style="--kpi-color:#ff6b6b">
+            <div class="t-kpi-label">Max Leakage</div>
+            <div class="t-kpi-value">${st.leakage.max!=null?Number(st.leakage.max).toFixed(3):'—'}</div>
+            <div class="t-kpi-sub">mL/min</div>
+            <i class="fas fa-droplet t-kpi-icon"></i>
+        </div>
+        <div class="t-kpi" style="--kpi-color:#00e676">
+            <div class="t-kpi-label">Avg Flow</div>
+            <div class="t-kpi-value">${st.flow.avg!=null?Number(st.flow.avg).toFixed(1):'—'}</div>
+            <div class="t-kpi-sub">L/min</div>
+            <i class="fas fa-wind t-kpi-icon"></i>
+        </div>
+        <div class="t-kpi" style="--kpi-color:var(--accent)">
+            <div class="t-kpi-label">Total Readings</div>
+            <div class="t-kpi-value">${st.reading_count}</div>
+            <div class="t-kpi-sub">data points</div>
+            <i class="fas fa-database t-kpi-icon"></i>
+        </div>`;
+
+    mkChart('chartPressure', '#00c8ff', 'Pressure (bar)',    ts, cd.pressure);
+    mkChart('chartTemp',     '#f59e0b', 'Temperature (°C)',  ts, cd.temperature);
+    mkChart('chartLeakage',  '#ff6b6b', 'Leakage (mL/min)', ts, cd.leakage);
+    mkChart('chartFlow',     '#00e676', 'Flow Rate (LPM)',   ts, cd.flow_rate);
+    mkCombined(ts, cd.pressure, cd.temperature, cd.flow_rate, cd.leakage);
+
+    document.getElementById('alertSummary').innerHTML =
+        alertBar('Pressure Alerts',    data.alerts.pressure) +
+        alertBar('Temperature Alerts', data.alerts.temperature) +
+        alertBar('Leakage Alerts',     data.alerts.leakage);
+}
+
+async function loadSessionList() {
+    try {
+        const res  = await apiFetch('/api/tests/sessions?per_page=30');
+        if (!res.ok) return;
+        const data = await res.json();
+        const sel  = document.getElementById('sessionSelect');
+        (data.sessions||[]).forEach(s => {
+            const opt = document.createElement('option');
+            opt.value = s.id;
+            opt.textContent = `${s.session_code} | ${s.valve_id||'No Valve'} | ${s.status}`;
+            sel.appendChild(opt);
+        });
+        sel.addEventListener('change', () => {
+            document.getElementById('sessionIdInput').value = sel.value;
+        });
+    } catch(e) {}
+}
+
+const sid = new URLSearchParams(location.search).get('session_id');
+if (sid) { document.getElementById('sessionIdInput').value = sid; loadAnalysis(); }
+
+loadSessionList();
+</script>
+{% endblock %}

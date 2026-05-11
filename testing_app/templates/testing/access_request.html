@@ -1,0 +1,282 @@
+{% extends "testing/base.html" %}
+{% block title %}Request Access — Testiny Testing Software{% endblock %}
+{% block page_title %}Request Access{% endblock %}
+
+{% block head %}
+<style>
+.req-wrap {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 20px 0;
+}
+.req-card {
+    width: 100%;
+    max-width: 560px;
+    background: rgba(255,255,255,.04);
+    border: 1px solid rgba(255,255,255,.1);
+    border-radius: 20px;
+    padding: 40px 36px;
+    box-shadow: 0 16px 48px rgba(0,0,0,.3);
+}
+
+/* Header */
+.req-card-header {
+    display: flex; align-items: center; gap: 14px;
+    margin-bottom: 28px;
+}
+.req-card-icon {
+    width: 52px; height: 52px;
+    background: linear-gradient(135deg, #0066ff, #00c8ff);
+    border-radius: 14px;
+    display: grid; place-items: center;
+    font-size: 22px; color: #fff; flex-shrink: 0;
+}
+.req-card-header h2 { font-size: 1.25rem; font-weight: 700; color: #e8f0fe; margin: 0; }
+.req-card-header p  { font-size: 12px; color: rgba(255,255,255,.4); margin: 3px 0 0; }
+
+/* Form */
+.req-group { margin-bottom: 16px; }
+.req-label {
+    display: block; font-size: 11px; font-weight: 600;
+    color: rgba(255,255,255,.4); letter-spacing: 1px;
+    text-transform: uppercase; margin-bottom: 7px;
+}
+.req-input, .req-textarea {
+    width: 100%;
+    background: rgba(0,0,0,.3);
+    border: 1.5px solid rgba(255,255,255,.1);
+    border-radius: 10px;
+    padding: 12px 16px;
+    color: #e8f0fe;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    transition: border .2s;
+}
+.req-input:focus, .req-textarea:focus {
+    outline: none; border-color: #0066ff;
+    box-shadow: 0 0 0 3px rgba(0,102,255,.12);
+}
+.req-input::placeholder, .req-textarea::placeholder { color: rgba(255,255,255,.2); }
+.req-textarea { resize: vertical; min-height: 110px; }
+
+.req-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+@media(max-width:520px){ .req-row { grid-template-columns: 1fr; } }
+
+/* Buttons */
+.btn-req-submit {
+    width: 100%;
+    padding: 14px;
+    background: linear-gradient(135deg, #0066ff, #00c8ff);
+    color: #fff;
+    border: none; border-radius: 12px;
+    font-size: 15px; font-weight: 700;
+    cursor: pointer; font-family: 'Inter', sans-serif;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    transition: box-shadow .2s;
+}
+.btn-req-submit:hover { box-shadow: 0 4px 20px rgba(0,102,255,.4); }
+.btn-req-submit:disabled { opacity: .5; cursor: not-allowed; }
+
+/* Alerts */
+.req-error {
+    background: rgba(255,23,68,.1); border: 1px solid rgba(255,23,68,.3);
+    color: #ff6b6b; border-radius: 8px; padding: 10px 14px;
+    font-size: 13px; margin-bottom: 14px; display: none;
+}
+.req-success-box {
+    background: rgba(0,230,118,.08); border: 1px solid rgba(0,230,118,.25);
+    border-radius: 14px; padding: 28px; text-align: center; display: none;
+}
+.req-success-box i { font-size: 40px; color: #00e676; margin-bottom: 10px; display:block; }
+.req-success-box h3 { color: #00e676; margin-bottom: 6px; }
+.req-success-box p  { color: rgba(255,255,255,.45); font-size: 13px; line-height: 1.7; }
+
+/* Status checker */
+.divider { height: 1px; background: rgba(255,255,255,.07); margin: 28px 0; }
+.status-row { display: flex; gap: 10px; }
+.status-row .req-input { margin: 0; }
+.btn-check {
+    padding: 12px 20px;
+    background: rgba(255,255,255,.08);
+    border: 1px solid rgba(255,255,255,.15);
+    border-radius: 10px;
+    color: #fff; font-family: 'Inter', sans-serif;
+    font-weight: 600; font-size: 13px;
+    cursor: pointer; white-space: nowrap;
+    transition: background .2s;
+}
+.btn-check:hover { background: rgba(255,255,255,.15); }
+.sr-box { margin-top: 12px; padding: 12px 16px; border-radius: 8px; font-size: 13px; display:none; }
+.sr-pending  { background: rgba(251,191,36,.1);  border:1px solid rgba(251,191,36,.3);  color:#fbbf24; }
+.sr-approved { background: rgba(0,230,118,.1);   border:1px solid rgba(0,230,118,.3);   color:#00e676; }
+.sr-rejected { background: rgba(255,23,68,.1);   border:1px solid rgba(255,23,68,.3);   color:#ff6b6b; }
+.sr-unknown  { background: rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.1); color:rgba(255,255,255,.4); }
+
+/* Info note */
+.access-link-note {
+    margin-top: 20px;
+    background: rgba(0,200,255,.05);
+    border: 1px solid rgba(0,200,255,.12);
+    border-radius: 10px;
+    padding: 13px 16px;
+    font-size: 13px;
+    color: rgba(255,255,255,.45);
+    line-height: 1.7;
+}
+.access-link-note a { color: #00c8ff; text-decoration: underline; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="req-wrap">
+    <div class="req-card">
+
+        <!-- Header -->
+        <div class="req-card-header">
+            <div class="req-card-icon"><i class="fas fa-paper-plane"></i></div>
+            <div>
+                <h2>Request Access</h2>
+                <p>Submit your details for admin approval</p>
+            </div>
+        </div>
+
+        <!-- Form -->
+        <div id="reqFormArea">
+            <div class="req-row">
+                <div class="req-group">
+                    <label class="req-label">Full Name *</label>
+                    <input type="text" class="req-input" id="rfName" placeholder="Your full name">
+                </div>
+                <div class="req-group">
+                    <label class="req-label">Email Address *</label>
+                    <input type="email" class="req-input" id="rfEmail" placeholder="you@company.com">
+                </div>
+            </div>
+            <div class="req-row">
+                <div class="req-group">
+                    <label class="req-label">Company / Organisation</label>
+                    <input type="text" class="req-input" id="rfCompany" placeholder="Company name">
+                </div>
+                <div class="req-group">
+                    <label class="req-label">Phone Number</label>
+                    <input type="tel" class="req-input" id="rfPhone" placeholder="+91 99999 99999">
+                </div>
+            </div>
+            <div class="req-group">
+                <label class="req-label">Purpose of Access *</label>
+                <textarea class="req-textarea" id="rfPurpose"
+                    placeholder="Describe why you need access to the testing software…"></textarea>
+            </div>
+            <div class="req-error" id="reqError"></div>
+            <button class="btn-req-submit" id="btnSubmit" onclick="submitRequest()">
+                <i class="fas fa-paper-plane"></i> Submit Access Request
+            </button>
+        </div>
+
+        <!-- Success state -->
+        <div class="req-success-box" id="reqSuccess">
+            <i class="fas fa-circle-check"></i>
+            <h3>Request Submitted!</h3>
+            <p>We've received your request. Our admin will review it within 24 business hours.<br>
+            Use the status checker below to track your request.</p>
+        </div>
+
+        <!-- Divider -->
+        <div class="divider"></div>
+
+        <!-- Status Checker -->
+        <label class="req-label">Check Request Status</label>
+        <div class="status-row">
+            <input type="email" class="req-input" id="checkEmail" placeholder="Enter your email…">
+            <button class="btn-check" onclick="checkStatus()"><i class="fas fa-magnifying-glass"></i> Check</button>
+        </div>
+        <div class="sr-box" id="statusResult"></div>
+
+        <!-- Already have token? -->
+        <div class="access-link-note">
+            <i class="fas fa-key" style="color:#00c8ff;margin-right:6px"></i>
+            Already have a token? Go to the <a href="/access">Access</a> page in the sidebar to log in.
+        </div>
+
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function submitRequest() {
+    const name    = document.getElementById('rfName').value.trim();
+    const email   = document.getElementById('rfEmail').value.trim();
+    const purpose = document.getElementById('rfPurpose').value.trim();
+    const errEl   = document.getElementById('reqError');
+
+    if (!name || !email || !purpose) {
+        errEl.textContent = 'Please fill in all required fields (Name, Email, Purpose).';
+        errEl.style.display = '';
+        return;
+    }
+    errEl.style.display = 'none';
+
+    const btn = document.getElementById('btnSubmit');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting…';
+
+    try {
+        const res = await fetch('http://localhost:5000/api/access/request', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                full_name:    name,
+                email:        email,
+                company_name: document.getElementById('rfCompany').value.trim(),
+                phone:        document.getElementById('rfPhone').value.trim(),
+                purpose:      purpose,
+            })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Submission failed');
+        document.getElementById('reqFormArea').style.display  = 'none';
+        document.getElementById('reqSuccess').style.display   = '';
+        document.getElementById('checkEmail').value = email;
+    } catch(e) {
+        errEl.textContent = e.message;
+        errEl.style.display = '';
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-paper-plane"></i> Submit Access Request';
+    }
+}
+
+async function checkStatus() {
+    const email  = document.getElementById('checkEmail').value.trim();
+    const result = document.getElementById('statusResult');
+    if (!email) return;
+
+    result.style.display = '';
+    result.className = 'sr-box sr-unknown';
+    result.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Checking…';
+
+    try {
+        const res = await fetch(`http://localhost:5000/api/access/status?email=${encodeURIComponent(email)}`);
+        if (res.status === 404) {
+            result.className = 'sr-box sr-unknown';
+            result.innerHTML = '<i class="fas fa-circle-exclamation"></i> No request found for this email.';
+            return;
+        }
+        const data = await res.json();
+        const map  = { pending:'sr-pending', approved:'sr-approved', rejected:'sr-rejected' };
+        const icon = { pending:'fa-clock', approved:'fa-circle-check', rejected:'fa-times-circle' };
+        const msg  = {
+            pending:  "Your request is under review. We'll respond within 24 hours.",
+            approved: 'Your request has been approved! Check your email for the access token.',
+            rejected: `Access was not granted. ${data.rejection_note ? 'Reason: ' + data.rejection_note : ''}`,
+        };
+        result.className = `sr-box ${map[data.status] || 'sr-unknown'}`;
+        result.innerHTML = `<i class="fas ${icon[data.status]}"></i> <strong>${data.status.toUpperCase()}</strong> — ${msg[data.status]}`;
+    } catch(e) {
+        result.className = 'sr-box sr-unknown';
+        result.innerHTML = 'Could not reach server. Make sure localhost:5000 is running.';
+    }
+}
+</script>
+{% endblock %}

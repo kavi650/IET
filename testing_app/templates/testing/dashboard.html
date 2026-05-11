@@ -1,0 +1,220 @@
+{% extends "testing/base.html" %}
+{% block title %}Dashboard — Testiny Testing Software{% endblock %}
+{% block page_title %}<i class="fas fa-gauge-high" style="color:var(--accent);margin-right:8px"></i>Dashboard{% endblock
+%}
+
+{% block content %}
+<!-- KPI Row -->
+<div class="t-kpi-grid">
+    <div class="t-kpi" style="--kpi-color:var(--accent)">
+        <div class="t-kpi-label">Machine Status</div>
+        <div class="t-kpi-value" id="kpiStatus">—</div>
+        <div class="t-kpi-sub" id="kpiSession">No active session</div>
+        <i class="fas fa-microchip t-kpi-icon"></i>
+    </div>
+    <div class="t-kpi" style="--kpi-color:var(--success)">
+        <div class="t-kpi-label">Today Passed</div>
+        <div class="t-kpi-value" id="kpiPassed">—</div>
+        <div class="t-kpi-sub" id="kpiTodayTotal">of — tests today</div>
+        <i class="fas fa-circle-check t-kpi-icon"></i>
+    </div>
+
+    <div class="t-kpi" style="--kpi-color:var(--danger)">
+        <div class="t-kpi-label">Today Failed</div>
+        <div class="t-kpi-value" id="kpiFailed">—</div>
+        <div class="t-kpi-sub">Requires review</div>
+        <i class="fas fa-triangle-exclamation t-kpi-icon"></i>
+    </div>
+    <div class="t-kpi" style="--kpi-color:var(--warning)">
+        <div class="t-kpi-label">Pass Rate (All Time)</div>
+        <div class="t-kpi-value" id="kpiPassRate">—%</div>
+        <div class="t-kpi-sub" id="kpiTotal">— total tests</div>
+        <i class="fas fa-chart-pie t-kpi-icon"></i>
+    </div>
+</div>
+
+<!-- Live Gauges (show last reading if active session) -->
+<div class="t-gauge-grid" id="gaugeGrid">
+    <div class="t-gauge-card">
+        <div class="t-gauge-label">Pressure</div>
+        <div class="t-gauge-value alert-ok" id="gPressure">—</div>
+        <div class="t-gauge-unit">bar</div>
+        <div class="t-gauge-bar">
+            <div class="t-gauge-fill fill-ok" id="gPressureFill" style="width:0%"></div>
+        </div>
+    </div>
+    <div class="t-gauge-card">
+        <div class="t-gauge-label">Temperature</div>
+        <div class="t-gauge-value alert-ok" id="gTemp">—</div>
+        <div class="t-gauge-unit">°C</div>
+        <div class="t-gauge-bar">
+            <div class="t-gauge-fill fill-ok" id="gTempFill" style="width:0%"></div>
+        </div>
+    </div>
+    <div class="t-gauge-card">
+        <div class="t-gauge-label">Flow Rate</div>
+        <div class="t-gauge-value" id="gFlow" style="color:var(--accent)">—</div>
+        <div class="t-gauge-unit">L/min</div>
+        <div class="t-gauge-bar">
+            <div class="t-gauge-fill" id="gFlowFill" style="width:0%;background:var(--accent)"></div>
+        </div>
+    </div>
+    <div class="t-gauge-card">
+        <div class="t-gauge-label">Leakage</div>
+        <div class="t-gauge-value alert-ok" id="gLeakage">—</div>
+        <div class="t-gauge-unit">mL/min</div>
+        <div class="t-gauge-bar">
+            <div class="t-gauge-fill fill-ok" id="gLeakageFill" style="width:0%"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts row -->
+<div class="t-grid-2" style="margin-bottom:24px">
+    <div class="t-card">
+        <div class="t-card-title">Pass vs Fail (All Time)</div>
+        <div class="t-chart" id="donutChart"></div>
+    </div>
+    <div class="t-card">
+        <div class="t-card-title">Monthly Trend</div>
+        <div class="t-chart" id="trendChart"></div>
+    </div>
+</div>
+
+<!-- Recent sessions -->
+<div class="t-card">
+    <div class="t-card-title">Recent Sessions</div>
+    <div class="t-table-wrap">
+        <table class="t-table">
+            <thead>
+                <tr>
+                    <th>Code</th>
+                    <th>Valve ID</th>
+                    <th>Operator</th>
+                    <th>Type</th>
+                    <th>Result</th>
+                    <th>Duration</th>
+                    <th>Date</th>
+                </tr>
+            </thead>
+            <tbody id="recentTbody">
+                <tr>
+                    <td colspan="7" style="text-align:center;color:var(--text-muted);padding:30px">Loading…</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const MAX_P = 250, MAX_T = 80, MAX_L = 5;
+
+    function badgeClass(result) {
+        const map = {
+            passed: 't-badge-passed', failed: 't-badge-failed', inconclusive: 't-badge-inconclusive',
+            running: 't-badge-running', setup: 't-badge-setup', completed: 't-badge-completed', aborted: 't-badge-aborted'
+        };
+        return map[result] || 't-badge-setup';
+    }
+
+    function fmtDuration(sec) {
+        if (!sec) return '—';
+        const m = Math.floor(sec / 60), s = sec % 60;
+        return m ? `${m}m ${s}s` : `${s}s`;
+    }
+
+    function updateGauge(id, fillId, value, max, alertClass) {
+        const el = document.getElementById(id), fill = document.getElementById(fillId);
+        if (!el) return;
+        el.textContent = value !== null ? Number(value).toFixed(2) : '—';
+        el.className = `t-gauge-value ${alertClass ? 'alert-' + alertClass : 'alert-ok'}`;
+        const pct = value ? Math.min((value / max) * 100, 100) : 0;
+        fill.style.width = pct + '%';
+        fill.className = `t-gauge-fill fill-${alertClass || 'ok'}`;
+    }
+
+    async function loadDashboard() {
+        try {
+            const res = await apiFetch('/api/tests/dashboard');
+            const data = await res.json();
+
+            // KPIs
+            document.getElementById('kpiStatus').textContent = data.machine_status?.toUpperCase() || '—';
+            document.getElementById('kpiSession').textContent = data.active_session ? `#${data.active_session.session_code}` : 'No active session';
+            document.getElementById('kpiPassed').textContent = data.today.passed;
+            document.getElementById('kpiFailed').textContent = data.today.failed;
+            document.getElementById('kpiTodayTotal').textContent = `of ${data.today.sessions} tests today`;
+            document.getElementById('kpiPassRate').textContent = data.all_time.pass_rate + '%';
+            document.getElementById('kpiTotal').textContent = `${data.all_time.total} total tests`;
+
+            // Sidebar status dot
+            const dot = document.getElementById('machineStatusDot');
+            const text = document.getElementById('machineStatusText');
+            dot.className = `t-status-dot ${data.machine_status}`;
+            text.textContent = data.machine_status === 'running' ? 'Running' : 'Idle';
+            if (data.machine_status === 'running') document.getElementById('liveIndicator').style.display = '';
+
+            // Gauges (latest reading)
+            if (data.latest_reading) {
+                const r = data.latest_reading;
+                updateGauge('gPressure', 'gPressureFill', r.pressure_bar, MAX_P, r.pressure_alert);
+                updateGauge('gTemp', 'gTempFill', r.temperature_c, MAX_T, r.temp_alert);
+                updateGauge('gLeakage', 'gLeakageFill', r.leakage_ml_min, MAX_L, r.leakage_alert);
+                document.getElementById('gFlow').textContent = r.flow_rate_lpm ? Number(r.flow_rate_lpm).toFixed(2) : '—';
+            }
+
+            // Recent sessions table
+            const tbody = document.getElementById('recentTbody');
+            tbody.innerHTML = data.recent_sessions.length ? data.recent_sessions.map(s => `
+            <tr>
+                <td><span style="font-family:var(--font-mono);font-size:12px">${s.session_code}</span></td>
+                <td>${s.valve_id || '—'}</td>
+                <td>${s.operator_name}</td>
+                <td>${s.test_type}</td>
+                <td><span class="t-badge ${badgeClass(s.result)}">${s.result || s.status}</span></td>
+                <td>${fmtDuration(s.duration_seconds)}</td>
+                <td style="color:var(--text-muted)">${new Date(s.created_at).toLocaleDateString()}</td>
+            </tr>`).join('') : '<tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:30px">No sessions yet</td></tr>';
+
+        } catch (e) { console.error(e); }
+    }
+
+    async function loadCharts() {
+        // Pass/Fail donut
+        const pf = await (await apiFetch('/api/tests/analysis/pass-fail')).json();
+        new ApexCharts(document.getElementById('donutChart'), {
+            series: [pf.passed || 0, pf.failed || 0, pf.inconclusive || 0],
+            labels: ['Passed', 'Failed', 'Inconclusive'],
+            colors: ['#00e676', '#ff1744', '#ffab00'],
+            chart: { type: 'donut', height: 280, background: 'transparent' },
+            plotOptions: { pie: { donut: { size: '65%', labels: { show: true, total: { show: true, label: 'Total', color: '#6b7fa3' } } } } },
+            legend: { labels: { colors: '#e8f0fe' } },
+            dataLabels: { style: { colors: ['#000'] } },
+            theme: { mode: 'dark' }
+        }).render();
+
+        // Monthly trend
+        const tr = await (await apiFetch('/api/tests/analysis/trends')).json();
+        const months = tr.trends.map(t => t.month);
+        new ApexCharts(document.getElementById('trendChart'), {
+            series: [
+                { name: 'Passed', data: tr.trends.map(t => t.passed) },
+                { name: 'Failed', data: tr.trends.map(t => t.failed) },
+            ],
+            colors: ['#00e676', '#ff1744'],
+            chart: { type: 'bar', height: 280, background: 'transparent', toolbar: { show: false } },
+            xaxis: { categories: months, labels: { style: { colors: '#6b7fa3' } } },
+            yaxis: { labels: { style: { colors: '#6b7fa3' } } },
+            grid: { borderColor: '#1e2d45' },
+            plotOptions: { bar: { borderRadius: 4 } },
+            theme: { mode: 'dark' }
+        }).render();
+    }
+
+    loadDashboard();
+    loadCharts();
+    setInterval(loadDashboard, 5000);  // auto-refresh every 5s
+</script>
+{% endblock %}

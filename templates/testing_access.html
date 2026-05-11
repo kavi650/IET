@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Testing Software Access — Testiny Equipments</title>
+    <meta name="description" content="Access or request access to Testiny's industrial valve testing software.">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --acc: #0066ff;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f8faff;
+        }
+
+        /* ── Navbar pad ─────────────────────────── */
+        .page-wrap {
+            padding-top: 72px;
+        }
+
+        /* ── Page hero ──────────────────────────── */
+        .ta-hero {
+            background: linear-gradient(135deg, #0a1628 0%, #0d2240 70%, #0066ff20 100%);
+            color: #fff;
+            padding: 52px 32px 40px;
+            text-align: center;
+        }
+
+        .ta-hero h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .ta-hero p {
+            color: rgba(255, 255, 255, .65);
+            font-size: 1rem;
+            max-width: 560px;
+            margin: 0 auto;
+        }
+
+        /* ── Sidebar layout ─────────────────────── */
+        .ta-layout {
+            display: grid;
+            grid-template-columns: 220px 1fr;
+            min-height: calc(100vh - 72px - 148px);
+            max-width: 1140px;
+            margin: 0 auto;
+            padding: 0;
+            gap: 0;
+        }
+
+        @media(max-width:720px) {
+            .ta-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .ta-sidebar {
+                flex-direction: row;
+                padding: 12px;
+                border-right: none;
+                border-bottom: 1px solid #e2e8f0;
+            }
+
+            .ta-nav-item {
+                flex: 1;
+                justify-content: center;
+            }
+        }
+
+        /* ── Sidebar ────────────────────────────── */
+        .ta-sidebar {
+            background: #0a1628;
+            border-right: 1px solid #1e2d45;
+            display: flex;
+            flex-direction: column;
+            padding: 28px 14px;
+            gap: 4px;
+        }
+
+        .ta-sidebar-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 0 8px 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, .07);
+            margin-bottom: 8px;
+        }
+
+        .ta-brand-icon {
+            width: 38px;
+            height: 38px;
+            background: linear-gradient(135deg, #00c8ff, #0066ff);
+            border-radius: 10px;
+            display: grid;
+            place-items: center;
+            font-size: 16px;
+            color: #fff;
+            flex-shrink: 0;
+        }
+
+        .ta-brand-name {
+            font-size: 14px;
+            font-weight: 800;
+            letter-spacing: 3px;
+            color: #00c8ff;
+        }
+
+        .ta-brand-sub {
+            font-size: 10px;
+            color: rgba(255, 255, 255, .35);
+            margin-top: 2px;
+        }
+
+        .ta-nav-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 11px 14px;
+            border-radius: 10px;
+            color: rgba(255, 255, 255, .5);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all .15s;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+            text-decoration: none;
+        }
+
+        .ta-nav-item:hover {
+            background: rgba(255, 255, 255, .06);
+            color: rgba(255, 255, 255, .85);
+        }
+
+        .ta-nav-item.active {
+            background: rgba(0, 102, 255, .2);
+            color: #00c8ff;
+            border-left: 3px solid #00c8ff;
+        }
+
+        .ta-nav-item i {
+            width: 18px;
+            text-align: center;
+            font-size: 15px;
+        }
+
+        .ta-nav-divider {
+            height: 1px;
+            background: rgba(255, 255, 255, .06);
+            margin: 10px 8px;
+        }
+
+        .ta-back-link {
+            margin-top: auto;
+            padding: 10px 14px;
+            font-size: 12px;
+            color: rgba(255, 255, 255, .3);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+            transition: color .15s;
+        }
+
+        .ta-back-link:hover {
+            color: rgba(255, 255, 255, .7);
+        }
+
+        /* ── Content panel ──────────────────────── */
+        .ta-content {
+            background: #f8faff;
+            padding: 36px 40px;
+        }
+
+        [data-theme="dark"] .ta-content {
+            background: #0f1117;
+        }
+
+        /* ── Panel sections ─────────────────────── */
+        .ta-panel {
+            display: none;
+        }
+
+        .ta-panel.active {
+            display: block;
+        }
+
+        /* ── Token card ─────────────────────────── */
+        .token-card {
+            max-width: 480px;
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 20px;
+            padding: 40px 36px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, .06);
+        }
+
+        [data-theme="dark"] .token-card {
+            background: #1a1d27;
+            border-color: #2d3140;
+        }
+
+        .token-brand {
+            text-align: center;
+            margin-bottom: 28px;
+        }
+
+        .token-brand-icon {
+            width: 64px;
+            height: 64px;
+            background: linear-gradient(135deg, #00c8ff, #0066ff);
+            border-radius: 18px;
+            display: grid;
+            place-items: center;
+            font-size: 28px;
+            color: #fff;
+            margin: 0 auto 12px;
+            box-shadow: 0 8px 24px rgba(0, 102, 255, .3);
+        }
+
+        .token-brand-name {
+            font-size: 18px;
+            font-weight: 800;
+            letter-spacing: 4px;
+            color: #0066ff;
+        }
+
+        .token-brand-sub {
+            font-size: 11px;
+            color: #94a3b8;
+            margin-top: 3px;
+        }
+
+        .token-card h2 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-bottom: 6px;
+        }
+
+        .token-sub {
+            font-size: 13px;
+            color: #64748b;
+            margin-bottom: 22px;
+        }
+
+        .fld-label {
+            display: block;
+            font-size: 11px;
+            font-weight: 600;
+            color: #94a3b8;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            margin-bottom: 7px;
+        }
+
+        .fld-input {
+            width: 100%;
+            background: #f8faff;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 12px 16px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            color: #0f172a;
+            margin-bottom: 14px;
+            transition: border .2s;
+        }
+
+        [data-theme="dark"] .fld-input {
+            background: #0f1117;
+            border-color: #2d3140;
+            color: #e8f0fe;
+        }
+
+        .fld-input:focus {
+            outline: none;
+            border-color: #0066ff;
+            box-shadow: 0 0 0 3px rgba(0, 102, 255, .1);
+        }
+
+        .fld-input::placeholder {
+            color: #cbd5e1;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .btn-access {
+            width: 100%;
+            padding: 14px;
+            background: #00c8ff;
+            color: #000;
+            border: none;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: 'Inter', sans-serif;
+            transition: background .2s, box-shadow .2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-access:hover {
+            background: #00b4e0;
+            box-shadow: 0 4px 20px rgba(0, 200, 255, .3);
+        }
+
+        .btn-access:disabled {
+            opacity: .5;
+            cursor: not-allowed;
+        }
+
+        .or-divider {
+            text-align: center;
+            color: #cbd5e1;
+            font-size: 12px;
+            margin: 18px 0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .or-divider::before,
+        .or-divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: #e2e8f0;
+        }
+
+        [data-theme="dark"] .or-divider::before,
+        [data-theme="dark"] .or-divider::after {
+            background: #2d3140;
+        }
+
+        .hint-box {
+            background: rgba(0, 102, 255, .05);
+            border: 1px solid rgba(0, 102, 255, .15);
+            border-radius: 10px;
+            padding: 14px 16px;
+            font-size: 13px;
+            color: #64748b;
+            line-height: 1.7;
+        }
+
+        .hint-box strong {
+            color: #0066ff;
+        }
+
+        /* Alerts */
+        .al-error {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #dc2626;
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-size: 13px;
+            margin-bottom: 12px;
+            display: none;
+        }
+
+        .al-ok {
+            background: #f0fdf4;
+            border: 1px solid #86efac;
+            color: #15803d;
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-size: 13px;
+            margin-bottom: 12px;
+            display: none;
+        }
+
+        /* ── Request form card ──────────────────── */
+        .req-card {
+            max-width: 580px;
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 20px;
+            padding: 36px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, .06);
+        }
+
+        [data-theme="dark"] .req-card {
+            background: #1a1d27;
+            border-color: #2d3140;
+        }
+
+        .req-card-head {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 24px;
+        }
+
+        .req-head-icon {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, #0066ff, #00c8ff);
+            border-radius: 13px;
+            display: grid;
+            place-items: center;
+            font-size: 20px;
+            color: #fff;
+            flex-shrink: 0;
+        }
+
+        .req-card-head h2 {
+            font-size: 1.2rem;
+            font-weight: 700;
+        }
+
+        .req-card-head p {
+            font-size: 12px;
+            color: #94a3b8;
+            margin-top: 2px;
+        }
+
+        .req-group {
+            margin-bottom: 16px;
+        }
+
+        .req-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+        }
+
+        @media(max-width:540px) {
+            .req-row {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .req-input,
+        .req-textarea {
+            width: 100%;
+            background: #f8faff;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 11px 14px;
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            color: #0f172a;
+            transition: border .2s;
+        }
+
+        [data-theme="dark"] .req-input,
+        [data-theme="dark"] .req-textarea {
+            background: #0f1117;
+            border-color: #2d3140;
+            color: #e8f0fe;
+        }
+
+        .req-input:focus,
+        .req-textarea:focus {
+            outline: none;
+            border-color: #0066ff;
+            box-shadow: 0 0 0 3px rgba(0, 102, 255, .1);
+        }
+
+        .req-input::placeholder,
+        .req-textarea::placeholder {
+            color: #cbd5e1;
+        }
+
+        .req-textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .btn-submit {
+            width: 100%;
+            padding: 13px;
+            background: linear-gradient(135deg, #0066ff, #00c8ff);
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: box-shadow .2s;
+        }
+
+        .btn-submit:hover {
+            box-shadow: 0 4px 20px rgba(0, 102, 255, .35);
+        }
+
+        .btn-submit:disabled {
+            opacity: .5;
+            cursor: not-allowed;
+        }
+
+        .success-box {
+            background: #f0fdf4;
+            border: 1.5px solid #86efac;
+            border-radius: 14px;
+            padding: 24px;
+            text-align: center;
+            display: none;
+        }
+
+        .success-box i {
+            font-size: 36px;
+            color: #22c55e;
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        .success-box h3 {
+            color: #15803d;
+            margin-bottom: 6px;
+        }
+
+        .success-box p {
+            color: #166534;
+            font-size: 13px;
+        }
+
+        .divider-line {
+            height: 1px;
+            background: #e2e8f0;
+            margin: 24px 0;
+        }
+
+        [data-theme="dark"] .divider-line {
+            background: #2d3140;
+        }
+
+        .status-row {
+            display: flex;
+            gap: 10px;
+        }
+
+        .status-row .req-input {
+            margin: 0;
+        }
+
+        .btn-check {
+            padding: 11px 18px;
+            background: #0a1628;
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            font-family: 'Inter', sans-serif;
+            font-weight: 600;
+            font-size: 13px;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: background .2s;
+        }
+
+        .btn-check:hover {
+            background: #1a2d50;
+        }
+
+        .sr-result {
+            margin-top: 10px;
+            padding: 11px 14px;
+            border-radius: 8px;
+            font-size: 13px;
+            display: none;
+        }
+
+        .sr-pending {
+            background: #fffbeb;
+            border: 1px solid #fbbf24;
+            color: #92400e;
+        }
+
+        .sr-approved {
+            background: #f0fdf4;
+            border: 1px solid #22c55e;
+            color: #15803d;
+        }
+
+        .sr-rejected {
+            background: #fef2f2;
+            border: 1px solid #fca5a5;
+            color: #dc2626;
+        }
+
+        .sr-none {
+            background: #f8faff;
+            border: 1px solid #e2e8f0;
+            color: #64748b;
+        }
+
+        .ta-layout {
+            width: 100% !important;
+            max-width: 100% !important;
+            margin: 0 !important;
+            grid-template-columns: 260px 1fr !important;
+        }
+
+        .ta-content {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        .token-card {
+            width: 100%;
+            max-width: 650px;
+        }
+
+        .req-card {
+            width: 100%;
+            max-width: 750px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- NAVBAR -->
+    <nav class="navbar" id="navbar">
+        <div class="container">
+            <a href="/" class="nav-logo">
+                <div class="logo-icon"><i class="fas fa-industry"></i></div>
+                <span>TESTINY</span>
+            </a>
+            <div class="nav-links" id="navLinks">
+                <a href="/">Home</a>
+                <a href="/about">About</a>
+                <a href="/products">Products</a>
+                <a href="/industries">Industries</a>
+                <a href="/compare">Compare</a>
+                <a href="/chat">AI Chat</a>
+                <a href="/contact">Contact</a>
+                <a href="/testing-access" class="nav-testing-link active"><i class="fas fa-flask"></i> Testing
+                    Access</a>
+            </div>
+            <div class="nav-actions">
+                <button class="theme-toggle" id="themeToggle"><i class="fas fa-moon"></i></button>
+                <button class="hamburger" id="hamburger"><span></span><span></span><span></span></button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="page-wrap">
+
+        <!-- HERO -->
+        <div class="ta-hero">
+            <h1><i class="fas fa-flask" style="margin-right:10px;opacity:.8"></i>Testing Software Access</h1>
+            <p>Access our industrial valve testing platform or submit a new access request below.</p>
+        </div>
+
+        <!-- SIDEBAR LAYOUT -->
+        <div class="ta-layout">
+
+            <!-- SIDEBAR -->
+            <aside class="ta-sidebar">
+                <div class="ta-sidebar-brand">
+                    <div class="ta-brand-icon"><i class="fas fa-atom"></i></div>
+                    <div>
+                        <div class="ta-brand-name">TESTINY</div>
+                        <div class="ta-brand-sub">Testing Software</div>
+                    </div>
+                </div>
+
+                <a class="ta-nav-item active" id="navAccess" onclick="showPanel('access')">
+                    <i class="fas fa-key"></i> Access
+                </a>
+                <a class="ta-nav-item" id="navRequest" onclick="showPanel('request')">
+                    <i class="fas fa-paper-plane"></i> Request
+                </a>
+
+                <div class="ta-nav-divider"></div>
+
+                <a href="/" class="ta-back-link">
+                    <i class="fas fa-arrow-left"></i> Back to Website
+                </a>
+            </aside>
+
+            <!-- CONTENT -->
+            <div class="ta-content">
+
+                <!-- ═══════════ PANEL: ACCESS ═══════════ -->
+                <div class="ta-panel active" id="panelAccess">
+                    <div class="token-card">
+                        <div class="token-brand">
+                            <div class="token-brand-icon"><i class="fas fa-atom"></i></div>
+                            <div class="token-brand-name">TESTINY</div>
+                            <div class="token-brand-sub">Industrial Testing Software</div>
+                        </div>
+
+                        <!-- Form area -->
+                        <div id="accessFormArea">
+                            <h2>Enter Access Token</h2>
+                            <p class="token-sub">Use the token approved by your administrator to access the testing
+                                platform.</p>
+
+                            <div class="al-error" id="tokenError"></div>
+
+                            <label class="fld-label">Access Token</label>
+                            <input type="text" class="fld-input" id="tokenInput"
+                                placeholder="Paste your access token here…"
+                                onkeydown="if(event.key==='Enter') doAccess()">
+
+                            <button type="button" class="btn-access" id="btnAccess" onclick="doAccess()">
+                                <i class="fas fa-lock"></i> Access Testing Software
+                            </button>
+
+                            <div class="or-divider">or</div>
+
+                            <div class="hint-box">
+                                <strong>Don't have a token?</strong><br>
+                                Click <strong>Request</strong> in the sidebar to submit an access request. Once approved
+                                by the admin, your token will be emailed to you.
+                            </div>
+                        </div>
+
+                        <!-- Success state (shown after valid token) -->
+                        <div id="accessSuccessBox" style="display:none;text-align:center;padding:16px 0">
+                            <div
+                                style="width:72px;height:72px;background:linear-gradient(135deg,#00c8ff,#0066ff);border-radius:50%;display:grid;place-items:center;font-size:32px;color:#fff;margin:0 auto 20px;box-shadow:0 8px 24px rgba(0,102,255,.3)">
+                                <i class="fas fa-check"></i>
+                            </div>
+                            <h2 style="margin-bottom:8px">Token Verified!</h2>
+                            <p class="token-sub">Welcome, <strong id="successName"></strong>. Your session is active.
+                            </p>
+                            <a id="openSoftwareLink" href="http://localhost:8501/login"
+                                style="display:inline-flex;align-items:center;gap:8px;margin-top:16px;padding:13px 28px;background:#0066ff;color:#fff;border-radius:12px;font-weight:700;font-size:15px;text-decoration:none;transition:box-shadow .2s"
+                                onmouseover="this.style.boxShadow='0 4px 20px rgba(0,102,255,.4)'"
+                                onmouseout="this.style.boxShadow='none'">
+                                <i class="fas fa-external-link-alt"></i> Open Testing Software
+                            </a>
+                            <div style="margin-top:16px">
+                                <button
+                                    onclick="document.getElementById('accessFormArea').style.display='';document.getElementById('accessSuccessBox').style.display='none';"
+                                    style="background:none;border:1px solid #e2e8f0;color:#94a3b8;padding:8px 18px;border-radius:8px;cursor:pointer;font-size:12px;font-family:'Inter',sans-serif;">
+                                    <i class="fas fa-arrow-left"></i> Use Different Token
+                                </button>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- ═══════════ PANEL: REQUEST ═══════════ -->
+                <div class="ta-panel" id="panelRequest">
+                    <div class="req-card">
+                        <div class="req-card-head">
+                            <div class="req-head-icon"><i class="fas fa-paper-plane"></i></div>
+                            <div>
+                                <h2>Request Access</h2>
+                                <p>Admin will review within 24 business hours</p>
+                            </div>
+                        </div>
+
+                        <div id="reqFormArea">
+                            <div class="req-row">
+                                <div class="req-group">
+                                    <label class="fld-label">Full Name *</label>
+                                    <input type="text" class="req-input" id="rName" placeholder="Your full name">
+                                </div>
+                                <div class="req-group">
+                                    <label class="fld-label">Email Address *</label>
+                                    <input type="email" class="req-input" id="rEmail" placeholder="you@company.com">
+                                </div>
+                            </div>
+                            <div class="req-row">
+                                <div class="req-group">
+                                    <label class="fld-label">Company</label>
+                                    <input type="text" class="req-input" id="rCompany" placeholder="Company name">
+                                </div>
+                                <div class="req-group">
+                                    <label class="fld-label">Phone</label>
+                                    <input type="tel" class="req-input" id="rPhone" placeholder="+91 99999 99999">
+                                </div>
+                            </div>
+                            <div class="req-group">
+                                <label class="fld-label">Purpose of Access *</label>
+                                <textarea class="req-textarea" id="rPurpose"
+                                    placeholder="Describe why you need access to the testing software…"></textarea>
+                            </div>
+                            <div class="al-error" id="reqError"></div>
+                            <button class="btn-submit" id="btnSubmit" onclick="doRequest()">
+                                <i class="fas fa-paper-plane"></i> Submit Access Request
+                            </button>
+                        </div>
+
+                        <div class="success-box" id="successBox">
+                            <i class="fas fa-circle-check"></i>
+                            <h3>Request Submitted!</h3>
+                            <p>We've received your request. You'll hear back within 24 hours.<br>Use the status checker
+                                below to track it.</p>
+                        </div>
+
+                        <div class="divider-line"></div>
+
+                        <label class="fld-label">Check Request Status</label>
+                        <div class="status-row">
+                            <input type="email" class="req-input" id="checkEmail" placeholder="Enter your email…">
+                            <button class="btn-check" onclick="checkStatus()"><i class="fas fa-magnifying-glass"></i>
+                                Check</button>
+                        </div>
+                        <div class="sr-result" id="statusResult"></div>
+                    </div>
+                </div>
+
+            </div><!-- /ta-content -->
+        </div><!-- /ta-layout -->
+
+    </div><!-- /page-wrap -->
+
+    <script>
+        /* ── Panel switcher ────────────────────────────── */
+        function showPanel(name) {
+            document.querySelectorAll('.ta-panel').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.ta-nav-item').forEach(n => n.classList.remove('active'));
+            document.getElementById('panel' + name.charAt(0).toUpperCase() + name.slice(1)).classList.add('active');
+            document.getElementById('nav' + name.charAt(0).toUpperCase() + name.slice(1)).classList.add('active');
+        }
+
+        /* ── Token access ──────────────────────────────── */
+        async function doAccess() {
+            const token = document.getElementById('tokenInput').value.trim();
+            const err = document.getElementById('tokenError');
+            const btn = document.getElementById('btnAccess');
+            err.style.display = 'none';
+
+            if (!token) { err.textContent = 'Please enter your access token.'; err.style.display = ''; return; }
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verifying…';
+            try {
+                const res = await fetch(`/api/access/verify/${token}`);
+                const data = await res.json();
+                if (res.ok && data.valid) {
+                    sessionStorage.setItem('testiny_token', token);
+                    sessionStorage.setItem('testiny_user', JSON.stringify(data));
+                    // Show success — pass token via URL so testing app can read it
+                    document.getElementById('tokenInput').value = '';
+                    document.getElementById('accessFormArea').style.display = 'none';
+                    document.getElementById('accessSuccessBox').style.display = '';
+                    document.getElementById('successName').textContent = data.full_name || 'User';
+                    // Build the open-software link with the token embedded
+                    document.getElementById('openSoftwareLink').href =
+                        `http://localhost:8501/dashboard?token=${encodeURIComponent(token)}`;
+                } else {
+                    err.textContent = data.reason || 'Invalid or expired token.';
+                    err.style.display = '';
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-lock"></i> Access Testing Software';
+                }
+            } catch (e) {
+                err.textContent = 'Could not verify token. Make sure the server is running.';
+                err.style.display = '';
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-lock"></i> Access Testing Software';
+            }
+        }
+
+        /* ── Submit request ────────────────────────────── */
+        async function doRequest() {
+            const name = document.getElementById('rName').value.trim();
+            const email = document.getElementById('rEmail').value.trim();
+            const purpose = document.getElementById('rPurpose').value.trim();
+            const err = document.getElementById('reqError');
+
+            if (!name || !email || !purpose) {
+                err.textContent = 'Please fill in all required fields.';
+                err.style.display = ''; return;
+            }
+            err.style.display = 'none';
+
+            const btn = document.getElementById('btnSubmit');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting…';
+            try {
+                const res = await fetch('/api/access/request', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        full_name: name, email,
+                        company_name: document.getElementById('rCompany').value.trim(),
+                        phone: document.getElementById('rPhone').value.trim(),
+                        purpose,
+                    })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Submission failed');
+                document.getElementById('reqFormArea').style.display = 'none';
+                document.getElementById('successBox').style.display = '';
+                document.getElementById('checkEmail').value = email;
+            } catch (e) {
+                err.textContent = e.message; err.style.display = '';
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-paper-plane"></i> Submit Access Request';
+            }
+        }
+
+        /* ── Check status ──────────────────────────────── */
+        async function checkStatus() {
+            const email = document.getElementById('checkEmail').value.trim();
+            const box = document.getElementById('statusResult');
+            if (!email) return;
+
+            box.style.display = ''; box.className = 'sr-result sr-none';
+            box.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Checking…';
+
+            const res = await fetch('/api/access/status?email=' + encodeURIComponent(email));
+            if (res.status === 404) {
+                box.innerHTML = '<i class="fas fa-circle-exclamation"></i> No request found for this email.'; return;
+            }
+            const data = await res.json();
+            const map = { pending: 'sr-pending', approved: 'sr-approved', rejected: 'sr-rejected' };
+            const icon = { pending: 'fa-clock', approved: 'fa-circle-check', rejected: 'fa-times-circle' };
+            const msg = {
+                pending: "Your request is under review. We'll respond within 24 hours.",
+                approved: 'Approved! Check your email for the access token.',
+                rejected: `Not granted. ${data.rejection_note ? 'Reason: ' + data.rejection_note : ''}`,
+            };
+            box.className = `sr-result ${map[data.status] || 'sr-none'}`;
+            box.innerHTML = `<i class="fas ${icon[data.status]}"></i> <strong>${data.status.toUpperCase()}</strong> — ${msg[data.status]}`;
+        }
+    </script>
+    <script src="/static/js/main.js"></script>
+</body>
+
+</html>

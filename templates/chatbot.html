@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description"
+        content="Chat with Testiny AI Assistant about industrial equipment, hydraulic systems, and testing solutions.">
+    <title>AI Assistant | Testiny Equipments</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+
+<body>
+
+    <!-- NAVBAR -->
+    <nav class="navbar" id="navbar">
+        <div class="container">
+            <a href="/" class="nav-logo">
+                <div class="logo-icon"><i class="fas fa-industry"></i></div>
+                <span>TESTINY</span>
+            </a>
+            <div class="nav-links" id="navLinks">
+                <a href="/">Home</a>
+                <a href="/about">About</a>
+                <a href="/products">Products</a>
+                <a href="/industries">Industries</a>
+                <a href="/compare">Compare</a>
+                <a href="/chat" class="active">AI Chat</a>
+                <a href="/contact">Contact</a>
+                <a href="/testing-access" class="nav-testing-link"><i class="fas fa-flask"></i> Testing Access</a>
+            </div>
+            <div class="nav-actions">
+                <button class="theme-toggle" id="themeToggle"><i class="fas fa-moon"></i></button>
+                <button class="hamburger" id="hamburger"><span></span><span></span><span></span></button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- CHAT SECTION -->
+    <section style="padding-top: 72px; height: 100vh; display: flex; flex-direction: column;">
+        <div class="container"
+            style="flex:1; display:flex; flex-direction:column; padding-top: var(--space-lg); padding-bottom: var(--space-lg);">
+
+            <!-- Chat Header -->
+            <div class="chat-header" style="border-radius: var(--radius-lg) var(--radius-lg) 0 0;">
+                <div class="chat-avatar"><i class="fas fa-robot"></i></div>
+                <div class="chat-info">
+                    <h3>Testiny AI Assistant</h3>
+                    <p><span class="online-dot"></span> Powered by LLaMA • Ask anything about our products</p>
+                </div>
+                <button class="btn btn-sm btn-outline-dark" id="clearChat" style="margin-left:auto;">
+                    <i class="fas fa-trash-alt"></i> Clear
+                </button>
+            </div>
+
+            <!-- Messages Area -->
+            <div class="chat-messages" id="chatMessages" style="flex:1;">
+                <!-- Welcome Message -->
+                <div class="chat-bubble ai">
+                    <strong>👋 Welcome to Testiny AI!</strong><br><br>
+                    I'm your intelligent assistant for industrial equipment queries. I can help you with:<br><br>
+                    🔧 <strong>Product Information</strong> — Specs, features, working principles<br>
+                    ⚖️ <strong>Comparisons</strong> — Hydraulic vs Pneumatic, test rigs<br>
+                    🎯 <strong>Recommendations</strong> — Best product for your application<br>
+                    📋 <strong>Technical Details</strong> — Standards, certifications, capabilities<br><br>
+                    Try one of the suggested questions below, or ask your own!
+                </div>
+
+                <!-- Suggestions -->
+                <div class="chat-suggestions" id="chatSuggestions">
+                    <span class="suggestion-chip" data-q="What is a hydraulic power pack?">What is a hydraulic power
+                        pack?</span>
+                    <span class="suggestion-chip" data-q="Which test rig is used for oil pumps?">Which test rig for oil
+                        pumps?</span>
+                    <span class="suggestion-chip" data-q="Difference between pneumatic and hydraulic system?">Hydraulic
+                        vs Pneumatic?</span>
+                    <span class="suggestion-chip" data-q="What is the maximum test pressure available?">Max test
+                        pressure?</span>
+                    <span class="suggestion-chip" data-q="Tell me about valve test bench specifications">Valve Test
+                        Bench specs</span>
+                    <span class="suggestion-chip" data-q="What industries do you serve?">Industries served?</span>
+                </div>
+            </div>
+
+            <!-- Input Area -->
+            <div class="chat-input-area" style="border-radius: 0 0 var(--radius-lg) var(--radius-lg);">
+                <input type="text" id="chatInput" placeholder="Type your question about industrial equipment..."
+                    autocomplete="off">
+                <button id="chatSend" aria-label="Send Message">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+
+        </div>
+    </section>
+
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="/static/js/main.js"></script>
+    <script src="/static/js/chatbot.js"></script>
+</body>
+
+</html>

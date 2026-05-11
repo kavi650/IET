@@ -1,0 +1,95 @@
+{% extends "testing/base.html" %}
+{% block title %}Results — Testiny{% endblock %}
+{% block page_title %}<i class="fas fa-clipboard-check" style="color:var(--success);margin-right:8px"></i>Results & Reports{% endblock %}
+
+{% block content %}
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+    <div style="display:flex;gap:8px">
+        <button class="t-btn t-btn-outline" onclick="loadResults('all')">All</button>
+        <button class="t-btn t-btn-outline" onclick="loadResults('passed')" style="color:var(--success)">Passed</button>
+        <button class="t-btn t-btn-outline" onclick="loadResults('failed')" style="color:var(--danger)">Failed</button>
+        <button class="t-btn t-btn-outline" onclick="loadResults('inconclusive')" style="color:var(--warning)">Inconclusive</button>
+    </div>
+    <input type="text" id="searchInput" placeholder="Search valve ID, operator…"
+        style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:8px 14px;color:var(--text-primary);width:220px;font-family:var(--font-main);font-size:13px">
+</div>
+
+<div class="t-card">
+    <div class="t-table-wrap">
+        <table class="t-table">
+            <thead><tr>
+                <th>Session Code</th><th>Valve ID</th><th>Type</th><th>Operator</th>
+                <th>Max Pressure</th><th>Max Leakage</th><th>Duration</th><th>Result</th><th>Date</th><th>Actions</th>
+            </tr></thead>
+            <tbody id="resultsTbody"><tr><td colspan="10" style="text-align:center;padding:40px;color:var(--text-muted)">Loading…</td></tr></tbody>
+        </table>
+    </div>
+    <div id="pagination" style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px"></div>
+</div>
+
+<!-- Sign modal -->
+<div id="signModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;display:none;place-items:center">
+    <div class="t-card" style="width:400px">
+        <div class="t-card-title">Sign Result</div>
+        <div class="t-form-group">
+            <label>Engineer Name</label>
+            <input type="text" id="signName" placeholder="Full name">
+        </div>
+        <div style="display:flex;gap:8px;margin-top:8px">
+            <button class="t-btn t-btn-primary" onclick="submitSign()">Sign</button>
+            <button class="t-btn t-btn-outline" onclick="closeSignModal()">Cancel</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentFilter = 'all', currentPage = 1, signingSessionId = null;
+
+function badgeClass(r) {
+    return { passed:'t-badge-passed', failed:'t-badge-failed', inconclusive:'t-badge-inconclusive' }[r] || 't-badge-setup';
+}
+
+async function loadResults(filter='all', page=1) {
+    currentFilter = filter; currentPage = page;
+    const url = filter === 'all'
+        ? `/api/tests/results?page=${page}&per_page=15`
+        : `/api/tests/results?result=${filter}&page=${page}&per_page=15`;
+    const data = await (await apiFetch(url)).json();
+    const tbody = document.getElementById('resultsTbody');
+    tbody.innerHTML = data.results.length ? data.results.map(s => {
+        const sum = s.summary || {};
+        return `<tr>
+            <td><span style="font-family:var(--font-mono);font-size:12px">${s.session_code}</span></td>
+            <td>${s.valve_id||'—'}</td>
+            <td>${s.test_type}</td>
+            <td>${s.operator_name}</td>
+            <td>${sum.max_pressure_bar ? Number(sum.max_pressure_bar).toFixed(2)+' bar' : '—'}</td>
+            <td>${sum.max_leakage_ml_min ? Number(sum.max_leakage_ml_min).toFixed(3)+' mL/min' : '—'}</td>
+            <td>${s.duration_seconds ? Math.floor(s.duration_seconds/60)+'m '+(s.duration_seconds%60)+'s' : '—'}</td>
+            <td><span class="t-badge ${badgeClass(s.result)}">${s.result||'—'}</span></td>
+            <td style="color:var(--text-muted)">${s.ended_at ? new Date(s.ended_at).toLocaleDateString() : '—'}</td>
+            <td style="display:flex;gap:6px">
+                <a href="/analysis?session_id=${s.id}" class="t-btn t-btn-outline" style="padding:4px 10px;font-size:12px"><i class="fas fa-chart-line"></i></a>
+                <a href="/api/tests/sessions/${s.id}/export/csv" class="t-btn t-btn-outline" style="padding:4px 10px;font-size:12px"><i class="fas fa-download"></i></a>
+                ${!sum.engineer_signed_by ? `<button class="t-btn t-btn-outline" style="padding:4px 10px;font-size:12px" onclick="openSignModal(${s.id})"><i class="fas fa-signature"></i></button>` : `<span style="font-size:11px;color:var(--success)"><i class="fas fa-check-circle"></i> ${sum.engineer_signed_by}</span>`}
+            </td>
+        </tr>`;
+    }).join('') : '<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--text-muted)">No results found</td></tr>';
+}
+
+function openSignModal(id) { signingSessionId = id; document.getElementById('signModal').style.display='grid'; }
+function closeSignModal() { document.getElementById('signModal').style.display='none'; signingSessionId=null; }
+
+async function submitSign() {
+    const name = document.getElementById('signName').value.trim();
+    if (!name) return alert('Enter engineer name');
+    await apiFetch(`/api/tests/results/${signingSessionId}/sign`, { method:'PUT', body: JSON.stringify({engineer_name:name}) });
+    closeSignModal();
+    loadResults(currentFilter, currentPage);
+}
+
+loadResults();
+</script>
+{% endblock %}

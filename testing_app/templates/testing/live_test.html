@@ -1,0 +1,835 @@
+{% extends "testing/base.html" %}
+{% block title %}Live Test — Testiny{% endblock %}
+{% block page_title %}<i class="fas fa-circle-dot" style="color:var(--danger);margin-right:8px"></i>Live Test{% endblock %}
+
+{% block head %}
+<style>
+/* ── Premium Radial Gauge ─── */
+.gauge-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:20px; }
+@media(max-width:1100px){ .gauge-grid{ grid-template-columns:repeat(2,1fr); } }
+@media(max-width:600px){ .gauge-grid{ grid-template-columns:1fr; } }
+.gauge-card {
+    background:linear-gradient(135deg,rgba(255,255,255,.05),rgba(255,255,255,.02));
+    border:1px solid rgba(255,255,255,.10); border-radius:20px; padding:20px 16px;
+    text-align:center; position:relative; overflow:hidden;
+    transition:transform .2s,box-shadow .2s;
+}
+.gauge-card:hover { transform:translateY(-3px); box-shadow:0 12px 40px rgba(0,0,0,.4); }
+.gauge-card::before {
+    content:''; position:absolute; top:0; left:0; right:0; height:2px;
+    border-radius:20px 20px 0 0;
+}
+.gauge-card.gc-blue::before  { background:linear-gradient(90deg,#00c8ff,#0066ff); }
+.gauge-card.gc-amber::before { background:linear-gradient(90deg,#f59e0b,#ff6b35); }
+.gauge-card.gc-green::before { background:linear-gradient(90deg,#00e676,#00b248); }
+.gauge-card.gc-red::before   { background:linear-gradient(90deg,#ff6b6b,#cc0000); }
+.gauge-card svg { overflow:visible; display:block; margin:0 auto; }
+.gauge-label { font-size:10px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:rgba(255,255,255,.4); margin-bottom:10px; }
+.gauge-center-val { font-size:1.6rem; font-weight:800; font-family:'JetBrains Mono',monospace; line-height:1; }
+.gauge-unit  { font-size:10px; color:rgba(255,255,255,.35); margin-top:3px; }
+.gauge-status{ font-size:10px; font-weight:700; letter-spacing:.5px; margin-top:8px; padding:3px 10px; border-radius:20px; display:inline-block; }
+.gs-ok       { background:rgba(0,230,118,.12); color:#00e676; }
+.gs-warn     { background:rgba(245,158,11,.12); color:#f59e0b; }
+.gs-crit     { background:rgba(255,107,107,.15); color:#ff6b6b; animation:pulse-crit 1s infinite; }
+@keyframes pulse-crit { 0%,100%{opacity:1} 50%{opacity:.4} }
+.gauge-bar-wrap { margin:8px 4px 0; background:rgba(255,255,255,.06); border-radius:6px; height:5px; overflow:hidden; }
+.gauge-bar { height:100%; border-radius:6px; transition:width .4s cubic-bezier(.4,0,.2,1); }
+
+/* ── Charts row ─── */
+.charts-row  { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:20px; }
+@media(max-width:800px){ .charts-row{ grid-template-columns:1fr; } }
+
+/* ── Sticky action bar ─── */
+.sticky-bar {
+    position:sticky; top:0; z-index:50;
+    background:rgba(10,15,26,.92); backdrop-filter:blur(12px);
+    border-bottom:1px solid rgba(0,200,255,.15);
+    display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+    padding:10px 0; margin-bottom:18px;
+}
+
+/* ── Trend & Health ─── */
+.trend-row { display:grid; grid-template-columns:repeat(4,1fr) 1.4fr; gap:14px; margin-bottom:20px; }
+@media(max-width:1000px){ .trend-row{ grid-template-columns:repeat(2,1fr); } }
+.trend-card {
+    background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.07);
+    border-radius:14px; padding:14px 16px; display:flex; align-items:center; gap:12px;
+}
+.trend-icon { font-size:22px; width:36px; text-align:center; }
+.trend-label { font-size:10px; text-transform:uppercase; letter-spacing:1px; color:rgba(255,255,255,.35); }
+.trend-val   { font-size:15px; font-weight:700; font-family:'JetBrains Mono',monospace; }
+.trend-arrow { font-size:18px; margin-left:auto; }
+.ta-up   { color:#ff6b6b; }
+.ta-down { color:#00e676; }
+.ta-flat { color:rgba(255,255,255,.3); }
+.health-card {
+    background:linear-gradient(135deg,rgba(0,200,255,.08),rgba(0,102,255,.05));
+    border:1px solid rgba(0,200,255,.18); border-radius:14px;
+    padding:14px 16px; display:flex; align-items:center; gap:16px;
+}
+.health-score { font-size:2rem; font-weight:800; font-family:'JetBrains Mono',monospace; }
+.health-label { font-size:10px; letter-spacing:1px; text-transform:uppercase; color:rgba(255,255,255,.4); }
+.health-bar-wrap { flex:1; background:rgba(255,255,255,.06); border-radius:6px; height:8px; overflow:hidden; margin-top:4px; }
+.health-bar { height:100%; border-radius:6px; transition:width .6s ease; }
+
+/* ── Analysis CTA ─── */
+.analysis-cta {
+    background: linear-gradient(135deg,#0066ff22,#00c8ff11);
+    border:1px solid rgba(0,200,255,.25); border-radius:14px;
+    padding:16px 24px; display:flex; align-items:center; gap:16px; margin-bottom:20px;
+}
+.analysis-cta i { font-size:24px; color:#00c8ff; }
+.analysis-cta h4 { color:#e8f0fe; margin:0 0 2px; font-size:14px; }
+.analysis-cta p  { color:rgba(255,255,255,.4); font-size:12px; margin:0; }
+.btn-analysis {
+    margin-left:auto; padding:10px 22px; background:#00c8ff; color:#000;
+    border:none; border-radius:10px; font-weight:700; font-size:13px;
+    cursor:pointer; font-family:'Inter',sans-serif; white-space:nowrap;
+    text-decoration:none; display:inline-flex; align-items:center; gap:6px;
+}
+.btn-analysis:hover { background:#00e5ff; }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- SETUP PANEL -->
+<div id="setupPanel">
+    <div class="t-grid-2" style="margin-bottom:24px;align-items:start">
+        <div class="t-card">
+            <div class="t-card-title"><i class="fas fa-plus-circle"></i> Start New Test</div>
+            <div class="t-form-row">
+                <div class="t-form-group"><label>Valve ID / Tag</label><input type="text" id="fValveId" placeholder="e.g. V-2026-001"></div>
+                <div class="t-form-group"><label>Valve Type</label>
+                    <select id="fValveType"><option value="">Select…</option>
+                        <option>ball</option><option>gate</option><option>butterfly</option><option>check</option><option>globe</option>
+                    </select></div>
+            </div>
+            <div class="t-form-row">
+                <div class="t-form-group"><label>Valve Size</label><input type="text" id="fValveSize" placeholder='DN50 / 2"'></div>
+                <div class="t-form-group"><label>Client Name</label><input type="text" id="fClientName"></div>
+            </div>
+            <div class="t-form-row">
+                <div class="t-form-group"><label>Test Type</label>
+                    <select id="fTestType">
+                        <option value="standard">Standard</option><option value="hydrostatic">Hydrostatic</option>
+                        <option value="pneumatic">Pneumatic</option><option value="leakage">Leakage</option>
+                    </select></div>
+                <div class="t-form-group"><label>Medium</label>
+                    <select id="fMedium">
+                        <option value="water">Water</option><option value="air">Air</option>
+                        <option value="gas">Gas</option><option value="oil">Oil</option>
+                    </select></div>
+            </div>
+            <div class="t-form-row">
+                <div class="t-form-group"><label>Target Pressure (bar)</label><input type="number" id="fPressure" placeholder="150"></div>
+                <div class="t-form-group"><label>Target Duration (sec)</label><input type="number" id="fDuration" placeholder="300"></div>
+            </div>
+            <div class="t-form-group"><label>Job Number</label><input type="text" id="fJobNumber" placeholder="JOB-2026-001"></div>
+            <div class="t-form-group"><label>Notes</label><textarea id="fNotes" rows="2"></textarea></div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+                <button class="t-btn t-btn-primary" id="btnCreate" onclick="createSession()">
+                    <i class="fas fa-play"></i> Create &amp; Start Test
+                </button>
+                <button class="t-btn t-btn-danger" id="btnStopSetup" onclick="stopFromSetup()"
+                    style="display:none" title="Stop the currently running test">
+                    <i class="fas fa-stop-circle"></i> Stop Running Test
+                </button>
+            </div>
+        </div>
+        <div class="t-card">
+            <div class="t-card-title"><i class="fas fa-sliders"></i> Machine Limits</div>
+            <div id="limitsDisplay" style="font-size:13px;line-height:2;color:var(--text-muted)">Loading…</div>
+        </div>
+    </div>
+</div>
+
+<!-- ACTIVE PANEL -->
+<div id="activePanel" style="display:none">
+
+    <!-- Sticky action bar -->
+    <div class="sticky-bar">
+        <div class="t-alert t-alert-info" id="sessionBanner" style="margin:0;flex:1;min-width:200px">
+            <i class="fas fa-circle-dot" style="animation:pulse-dot 1s infinite"></i>
+            <span id="sessionBannerText">Session active</span>
+            <span style="margin-left:auto;font-family:var(--font-mono)" id="sessionTimer">00:00</span>
+        </div>
+        <button class="t-btn t-btn-success" onclick="completeSession('passed')" title="Mark test as Passed">
+            <i class="fas fa-circle-check"></i> Pass
+        </button>
+        <button class="t-btn t-btn-danger" onclick="completeSession('failed')" title="Mark test as Failed">
+            <i class="fas fa-times-circle"></i> Fail
+        </button>
+        <button class="t-btn t-btn-outline" onclick="abortSession()" title="Abort test">
+            <i class="fas fa-stop-circle"></i> Stop
+        </button>
+        <a href="/live" class="t-btn" style="background:rgba(0,200,255,.1);color:#00c8ff;border:1px solid rgba(0,200,255,.25);text-decoration:none" title="Go back to Live Test setup">
+            <i class="fas fa-arrow-left"></i> Live Test
+        </a>
+    </div>
+
+    <!-- Analysis CTA -->
+    <div class="analysis-cta" id="analysisCta" style="display:none">
+        <i class="fas fa-chart-bar"></i>
+        <div>
+            <h4>Analysis Ready</h4>
+            <p>View full charts and trends for this session</p>
+        </div>
+        <a class="btn-analysis" id="btnGoAnalysis" href="/analysis">
+            <i class="fas fa-chart-line"></i> Open Analysis
+        </a>
+    </div>
+
+    <!-- Premium Radial Gauges -->
+    <div class="gauge-grid">
+
+        <!-- Pressure -->
+        <div class="gauge-card gc-blue">
+            <div class="gauge-label"><i class="fas fa-gauge-high" style="margin-right:4px"></i>Pressure</div>
+            <svg width="140" height="140" viewBox="0 0 140 140">
+                <defs>
+                    <filter id="glow-blue"><feGaussianBlur stdDeviation="3" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+                    <linearGradient id="grad-blue" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <stop offset="0%" stop-color="#0066ff"/><stop offset="100%" stop-color="#00c8ff"/>
+                    </linearGradient>
+                </defs>
+                <!-- Track -->
+                <circle cx="70" cy="70" r="54" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="10" stroke-dasharray="288 1000" stroke-dashoffset="-126" stroke-linecap="round"/>
+                <!-- Fill arc -->
+                <circle id="gaugePressurePath" cx="70" cy="70" r="54" fill="none" stroke="url(#grad-blue)" stroke-width="10"
+                    stroke-dasharray="0 288" stroke-dashoffset="-126" stroke-linecap="round"
+                    filter="url(#glow-blue)" style="transition:stroke-dasharray .5s cubic-bezier(.4,0,.2,1)"/>
+                <!-- Tick marks -->
+                <g stroke="rgba(255,255,255,.2)" stroke-width="1.5">
+                    <line x1="70" y1="12" x2="70" y2="20" transform="rotate(-144 70 70)"/>
+                    <line x1="70" y1="12" x2="70" y2="20" transform="rotate(-108 70 70)"/>
+                    <line x1="70" y1="12" x2="70" y2="20" transform="rotate(-72 70 70)"/>
+                    <line x1="70" y1="12" x2="70" y2="20" transform="rotate(-36 70 70)"/>
+                    <line x1="70" y1="12" x2="70" y2="20" transform="rotate(0 70 70)"/>
+                    <line x1="70" y1="12" x2="70" y2="20" transform="rotate(36 70 70)"/>
+                    <line x1="70" y1="12" x2="70" y2="20" transform="rotate(72 70 70)"/>
+                    <line x1="70" y1="12" x2="70" y2="20" transform="rotate(108 70 70)"/>
+                    <line x1="70" y1="12" x2="70" y2="20" transform="rotate(144 70 70)"/>
+                </g>
+                <!-- Needle -->
+                <line id="needlePressure" x1="70" y1="70" x2="70" y2="22" stroke="#00c8ff" stroke-width="2" stroke-linecap="round"
+                    style="transform-origin:70px 70px;transform:rotate(-144deg);transition:transform .5s cubic-bezier(.4,0,.2,1)"/>
+                <circle cx="70" cy="70" r="5" fill="#00c8ff" opacity=".8"/>
+                <!-- Value -->
+                <text x="70" y="90" text-anchor="middle" fill="#00c8ff" font-size="18" font-weight="800" font-family="JetBrains Mono,monospace" id="livePressureSvg">—</text>
+                <text x="70" y="103" text-anchor="middle" fill="rgba(255,255,255,.3)" font-size="9">bar</text>
+            </svg>
+            <div class="gauge-status gs-ok" id="livePressureStatus">● Normal</div>
+            <div class="gauge-bar-wrap"><div class="gauge-bar" id="barPressure" style="width:0%;background:linear-gradient(90deg,#0066ff,#00c8ff)"></div></div>
+        </div>
+
+        <!-- Temperature -->
+        <div class="gauge-card gc-amber">
+            <div class="gauge-label"><i class="fas fa-temperature-half" style="margin-right:4px"></i>Temperature</div>
+            <svg width="140" height="140" viewBox="0 0 140 140">
+                <defs>
+                    <filter id="glow-amber"><feGaussianBlur stdDeviation="3" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+                    <linearGradient id="grad-amber" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <stop offset="0%" stop-color="#f59e0b"/><stop offset="100%" stop-color="#ff6b35"/>
+                    </linearGradient>
+                </defs>
+                <circle cx="70" cy="70" r="54" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="10" stroke-dasharray="288 1000" stroke-dashoffset="-126" stroke-linecap="round"/>
+                <circle id="gaugeTempPath" cx="70" cy="70" r="54" fill="none" stroke="url(#grad-amber)" stroke-width="10"
+                    stroke-dasharray="0 288" stroke-dashoffset="-126" stroke-linecap="round"
+                    filter="url(#glow-amber)" style="transition:stroke-dasharray .5s cubic-bezier(.4,0,.2,1)"/>
+                <g stroke="rgba(255,255,255,.2)" stroke-width="1.5">
+                    <line x1="70" y1="12" x2="70" y2="20" transform="rotate(-144 70 70)"/>
+                    <line x1="70" y1="12" x2="70" y2="20" transform="rotate(-72 70 70)"/>
+                    <line x1="70" y1="12" x2="70" y2="20" transform="rotate(0 70 70)"/>
+                    <line x1="70" y1="12" x2="70" y2="20" transform="rotate(72 70 70)"/>
+                    <line x1="70" y1="12" x2="70" y2="20" transform="rotate(144 70 70)"/>
+                </g>
+                <line id="needleTemp" x1="70" y1="70" x2="70" y2="22" stroke="#f59e0b" stroke-width="2" stroke-linecap="round"
+                    style="transform-origin:70px 70px;transform:rotate(-144deg);transition:transform .5s cubic-bezier(.4,0,.2,1)"/>
+                <circle cx="70" cy="70" r="5" fill="#f59e0b" opacity=".8"/>
+                <text x="70" y="90" text-anchor="middle" fill="#f59e0b" font-size="18" font-weight="800" font-family="JetBrains Mono,monospace" id="liveTempSvg">—</text>
+                <text x="70" y="103" text-anchor="middle" fill="rgba(255,255,255,.3)" font-size="9">°C</text>
+            </svg>
+            <div class="gauge-status gs-ok" id="liveTempStatus">● Normal</div>
+            <div class="gauge-bar-wrap"><div class="gauge-bar" id="barTemp" style="width:0%;background:linear-gradient(90deg,#f59e0b,#ff6b35)"></div></div>
+        </div>
+
+        <!-- Flow Rate -->
+        <div class="gauge-card gc-green">
+            <div class="gauge-label"><i class="fas fa-wind" style="margin-right:4px"></i>Flow Rate</div>
+            <svg width="140" height="140" viewBox="0 0 140 140">
+                <defs>
+                    <filter id="glow-green"><feGaussianBlur stdDeviation="3" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+                    <linearGradient id="grad-green" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <stop offset="0%" stop-color="#00b248"/><stop offset="100%" stop-color="#00e676"/>
+                    </linearGradient>
+                </defs>
+                <circle cx="70" cy="70" r="54" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="10" stroke-dasharray="288 1000" stroke-dashoffset="-126" stroke-linecap="round"/>
+                <circle id="gaugeFlowPath" cx="70" cy="70" r="54" fill="none" stroke="url(#grad-green)" stroke-width="10"
+                    stroke-dasharray="0 288" stroke-dashoffset="-126" stroke-linecap="round"
+                    filter="url(#glow-green)" style="transition:stroke-dasharray .5s cubic-bezier(.4,0,.2,1)"/>
+                <g stroke="rgba(255,255,255,.2)" stroke-width="1.5">
+                    <line x1="70" y1="12" x2="70" y2="20" transform="rotate(-144 70 70)"/>
+                    <line x1="70" y1="12" x2="70" y2="20" transform="rotate(-72 70 70)"/>
+                    <line x1="70" y1="12" x2="70" y2="20" transform="rotate(0 70 70)"/>
+                    <line x1="70" y1="12" x2="70" y2="20" transform="rotate(72 70 70)"/>
+                    <line x1="70" y1="12" x2="70" y2="20" transform="rotate(144 70 70)"/>
+                </g>
+                <line id="needleFlow" x1="70" y1="70" x2="70" y2="22" stroke="#00e676" stroke-width="2" stroke-linecap="round"
+                    style="transform-origin:70px 70px;transform:rotate(-144deg);transition:transform .5s cubic-bezier(.4,0,.2,1)"/>
+                <circle cx="70" cy="70" r="5" fill="#00e676" opacity=".8"/>
+                <text x="70" y="90" text-anchor="middle" fill="#00e676" font-size="18" font-weight="800" font-family="JetBrains Mono,monospace" id="liveFlowSvg">—</text>
+                <text x="70" y="103" text-anchor="middle" fill="rgba(255,255,255,.3)" font-size="9">L/min</text>
+            </svg>
+            <div class="gauge-status gs-ok" id="liveFlowStatus">● Active</div>
+            <div class="gauge-bar-wrap"><div class="gauge-bar" id="barFlow" style="width:0%;background:linear-gradient(90deg,#00b248,#00e676)"></div></div>
+        </div>
+
+        <!-- Leakage -->
+        <div class="gauge-card gc-red">
+            <div class="gauge-label"><i class="fas fa-droplet" style="margin-right:4px"></i>Leakage</div>
+            <svg width="140" height="140" viewBox="0 0 140 140">
+                <defs>
+                    <filter id="glow-red"><feGaussianBlur stdDeviation="3" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+                    <linearGradient id="grad-red" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <stop offset="0%" stop-color="#cc0000"/><stop offset="100%" stop-color="#ff6b6b"/>
+                    </linearGradient>
+                </defs>
+                <circle cx="70" cy="70" r="54" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="10" stroke-dasharray="288 1000" stroke-dashoffset="-126" stroke-linecap="round"/>
+                <circle id="gaugeLeakPath" cx="70" cy="70" r="54" fill="none" stroke="url(#grad-red)" stroke-width="10"
+                    stroke-dasharray="0 288" stroke-dashoffset="-126" stroke-linecap="round"
+                    filter="url(#glow-red)" style="transition:stroke-dasharray .5s cubic-bezier(.4,0,.2,1)"/>
+                <g stroke="rgba(255,255,255,.2)" stroke-width="1.5">
+                    <line x1="70" y1="12" x2="70" y2="20" transform="rotate(-144 70 70)"/>
+                    <line x1="70" y1="12" x2="70" y2="20" transform="rotate(-72 70 70)"/>
+                    <line x1="70" y1="12" x2="70" y2="20" transform="rotate(0 70 70)"/>
+                    <line x1="70" y1="12" x2="70" y2="20" transform="rotate(72 70 70)"/>
+                    <line x1="70" y1="12" x2="70" y2="20" transform="rotate(144 70 70)"/>
+                </g>
+                <line id="needleLeak" x1="70" y1="70" x2="70" y2="22" stroke="#ff6b6b" stroke-width="2" stroke-linecap="round"
+                    style="transform-origin:70px 70px;transform:rotate(-144deg);transition:transform .5s cubic-bezier(.4,0,.2,1)"/>
+                <circle cx="70" cy="70" r="5" fill="#ff6b6b" opacity=".8"/>
+                <text x="70" y="90" text-anchor="middle" fill="#ff6b6b" font-size="18" font-weight="800" font-family="JetBrains Mono,monospace" id="liveLeakageSvg">—</text>
+                <text x="70" y="103" text-anchor="middle" fill="rgba(255,255,255,.3)" font-size="9">mL/min</text>
+            </svg>
+            <div class="gauge-status gs-ok" id="liveLeakageStatus">● Normal</div>
+            <div class="gauge-bar-wrap"><div class="gauge-bar" id="barLeak" style="width:0%;background:linear-gradient(90deg,#cc0000,#ff6b6b)"></div></div>
+        </div>
+
+    </div>
+
+    <!-- Alerts -->
+    <div id="alertsArea" style="margin-bottom:16px"></div>
+
+    <!-- Trend Row -->
+    <div class="trend-row" id="trendRow" style="display:none">
+        <div class="trend-card">
+            <span class="trend-icon" style="color:#00c8ff"><i class="fas fa-gauge-high"></i></span>
+            <div>
+                <div class="trend-label">Pressure Δ/s</div>
+                <div class="trend-val" id="trendP">—</div>
+            </div>
+            <span class="trend-arrow" id="arrowP">→</span>
+        </div>
+        <div class="trend-card">
+            <span class="trend-icon" style="color:#f59e0b"><i class="fas fa-temperature-half"></i></span>
+            <div>
+                <div class="trend-label">Temp Δ/s</div>
+                <div class="trend-val" id="trendT">—</div>
+            </div>
+            <span class="trend-arrow" id="arrowT">→</span>
+        </div>
+        <div class="trend-card">
+            <span class="trend-icon" style="color:#00e676"><i class="fas fa-wind"></i></span>
+            <div>
+                <div class="trend-label">Flow Δ/s</div>
+                <div class="trend-val" id="trendF">—</div>
+            </div>
+            <span class="trend-arrow" id="arrowF">→</span>
+        </div>
+        <div class="trend-card">
+            <span class="trend-icon" style="color:#ff6b6b"><i class="fas fa-droplet"></i></span>
+            <div>
+                <div class="trend-label">Leakage Δ/s</div>
+                <div class="trend-val" id="trendL">—</div>
+            </div>
+            <span class="trend-arrow" id="arrowL">→</span>
+        </div>
+        <div class="health-card">
+            <div>
+                <div class="health-label">Test Health</div>
+                <div class="health-score" id="healthScore" style="color:#00e676">100</div>
+                <div class="health-bar-wrap"><div class="health-bar" id="healthBar" style="width:100%;background:#00e676"></div></div>
+            </div>
+            <div id="healthIcon" style="font-size:2rem;margin-left:auto">✅</div>
+        </div>
+    </div>
+
+    <!-- Charts row: Pressure + Temperature -->
+    <div class="charts-row">
+        <div class="t-card">
+            <div class="t-card-title">Pressure (bar) — Live</div>
+            <div id="chartPressure" style="min-height:200px"></div>
+        </div>
+        <div class="t-card">
+            <div class="t-card-title">Temperature (°C) — Live</div>
+            <div id="chartTemp" style="min-height:200px"></div>
+        </div>
+    </div>
+
+    <!-- Charts row: Flow + Leakage -->
+    <div class="charts-row">
+        <div class="t-card">
+            <div class="t-card-title">Flow Rate (L/min) — Live</div>
+            <div id="chartFlow" style="min-height:200px"></div>
+        </div>
+        <div class="t-card">
+            <div class="t-card-title">Leakage (mL/min) — Live</div>
+            <div id="chartLeak" style="min-height:200px"></div>
+        </div>
+    </div>
+
+    <!-- Combined Multi-Channel Chart -->
+    <div class="t-card" style="margin-bottom:20px">
+        <div class="t-card-title"><i class="fas fa-chart-line" style="color:#00c8ff;margin-right:8px"></i>All Channels — Live Overlay</div>
+        <div id="chartCombined" style="min-height:240px"></div>
+    </div>
+
+    <!-- Live Session Stats -->
+    <div class="t-card" style="margin-bottom:20px">
+        <div class="t-card-title"><i class="fas fa-table-cells-large" style="color:#00e676;margin-right:8px"></i>Session Statistics</div>
+        <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:13px">
+            <thead>
+                <tr style="color:rgba(255,255,255,.4);font-size:10px;letter-spacing:1px;text-transform:uppercase">
+                    <th style="padding:8px 12px;text-align:left;border-bottom:1px solid rgba(255,255,255,.07)">Channel</th>
+                    <th style="padding:8px 12px;text-align:right;border-bottom:1px solid rgba(255,255,255,.07)">Current</th>
+                    <th style="padding:8px 12px;text-align:right;border-bottom:1px solid rgba(255,255,255,.07)">Min</th>
+                    <th style="padding:8px 12px;text-align:right;border-bottom:1px solid rgba(255,255,255,.07)">Max</th>
+                    <th style="padding:8px 12px;text-align:right;border-bottom:1px solid rgba(255,255,255,.07)">Avg</th>
+                    <th style="padding:8px 12px;text-align:right;border-bottom:1px solid rgba(255,255,255,.07)">Readings</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr class="stat-row" style="border-bottom:1px solid rgba(255,255,255,.04)">
+                    <td style="padding:10px 12px;color:#00c8ff;font-weight:600"><i class="fas fa-gauge-high" style="margin-right:6px"></i>Pressure</td>
+                    <td style="padding:10px 12px;text-align:right;font-family:'JetBrains Mono',monospace" id="stP_cur">—</td>
+                    <td style="padding:10px 12px;text-align:right;font-family:'JetBrains Mono',monospace;color:rgba(255,255,255,.5)" id="stP_min">—</td>
+                    <td style="padding:10px 12px;text-align:right;font-family:'JetBrains Mono',monospace;color:rgba(255,255,255,.5)" id="stP_max">—</td>
+                    <td style="padding:10px 12px;text-align:right;font-family:'JetBrains Mono',monospace;color:#00c8ff" id="stP_avg">—</td>
+                    <td style="padding:10px 12px;text-align:right;color:rgba(255,255,255,.4)" id="stP_n">0</td>
+                </tr>
+                <tr class="stat-row" style="border-bottom:1px solid rgba(255,255,255,.04)">
+                    <td style="padding:10px 12px;color:#f59e0b;font-weight:600"><i class="fas fa-temperature-half" style="margin-right:6px"></i>Temperature</td>
+                    <td style="padding:10px 12px;text-align:right;font-family:'JetBrains Mono',monospace" id="stT_cur">—</td>
+                    <td style="padding:10px 12px;text-align:right;font-family:'JetBrains Mono',monospace;color:rgba(255,255,255,.5)" id="stT_min">—</td>
+                    <td style="padding:10px 12px;text-align:right;font-family:'JetBrains Mono',monospace;color:rgba(255,255,255,.5)" id="stT_max">—</td>
+                    <td style="padding:10px 12px;text-align:right;font-family:'JetBrains Mono',monospace;color:#f59e0b" id="stT_avg">—</td>
+                    <td style="padding:10px 12px;text-align:right;color:rgba(255,255,255,.4)" id="stT_n">0</td>
+                </tr>
+                <tr class="stat-row" style="border-bottom:1px solid rgba(255,255,255,.04)">
+                    <td style="padding:10px 12px;color:#00e676;font-weight:600"><i class="fas fa-wind" style="margin-right:6px"></i>Flow Rate</td>
+                    <td style="padding:10px 12px;text-align:right;font-family:'JetBrains Mono',monospace" id="stF_cur">—</td>
+                    <td style="padding:10px 12px;text-align:right;font-family:'JetBrains Mono',monospace;color:rgba(255,255,255,.5)" id="stF_min">—</td>
+                    <td style="padding:10px 12px;text-align:right;font-family:'JetBrains Mono',monospace;color:rgba(255,255,255,.5)" id="stF_max">—</td>
+                    <td style="padding:10px 12px;text-align:right;font-family:'JetBrains Mono',monospace;color:#00e676" id="stF_avg">—</td>
+                    <td style="padding:10px 12px;text-align:right;color:rgba(255,255,255,.4)" id="stF_n">0</td>
+                </tr>
+                <tr class="stat-row">
+                    <td style="padding:10px 12px;color:#ff6b6b;font-weight:600"><i class="fas fa-droplet" style="margin-right:6px"></i>Leakage</td>
+                    <td style="padding:10px 12px;text-align:right;font-family:'JetBrains Mono',monospace" id="stL_cur">—</td>
+                    <td style="padding:10px 12px;text-align:right;font-family:'JetBrains Mono',monospace;color:rgba(255,255,255,.5)" id="stL_min">—</td>
+                    <td style="padding:10px 12px;text-align:right;font-family:'JetBrains Mono',monospace;color:rgba(255,255,255,.5)" id="stL_max">—</td>
+                    <td style="padding:10px 12px;text-align:right;font-family:'JetBrains Mono',monospace;color:#ff6b6b" id="stL_avg">—</td>
+                    <td style="padding:10px 12px;text-align:right;color:rgba(255,255,255,.4)" id="stL_n">0</td>
+                </tr>
+            </tbody>
+        </table>
+        </div>
+    </div>
+
+    <!-- Controls -->
+    <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">
+        <button class="t-btn t-btn-success" id="btnComplete" onclick="completeSession('passed')">
+            <i class="fas fa-circle-check"></i> Mark Passed
+        </button>
+        <button class="t-btn t-btn-danger" id="btnFail" onclick="completeSession('failed')">
+            <i class="fas fa-times-circle"></i> Mark Failed
+        </button>
+        <button class="t-btn t-btn-outline" id="btnAbort" onclick="abortSession()">
+            <i class="fas fa-stop-circle"></i> Abort
+        </button>
+        <a href="/analysis" class="t-btn" style="background:rgba(0,200,255,.12);color:#00c8ff;border:1px solid rgba(0,200,255,.25);text-decoration:none;margin-left:auto">
+            <i class="fas fa-chart-bar"></i> Analysis Page
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let ACTIVE_SESSION = null, SOCKET = null, timerInterval = null, timerSec = 0;
+const MAX_P = 250, MAX_T = 80, MAX_F = 200, MAX_L = 5;
+const ARC_FULL = 288; // full gauge arc (circle r=54 * 2π * 85%)
+
+// Chart instances
+let cPressure, cTemp, cFlow, cLeak, cCombined;
+
+// Running stats
+const stats = {
+    p: { vals:[], cur:null }, t: { vals:[], cur:null },
+    f: { vals:[], cur:null }, l: { vals:[], cur:null }
+};
+function updateStats(key, val, ids) {
+    if (val == null) return;
+    const s = stats[key];
+    s.cur = val; s.vals.push(val);
+    const mn = Math.min(...s.vals), mx = Math.max(...s.vals);
+    const avg = s.vals.reduce((a,b)=>a+b,0)/s.vals.length;
+    const d = val < 1 ? 3 : val < 10 ? 2 : 1;
+    document.getElementById(ids[0]).textContent = val.toFixed(d);
+    document.getElementById(ids[1]).textContent = mn.toFixed(d);
+    document.getElementById(ids[2]).textContent = mx.toFixed(d);
+    document.getElementById(ids[3]).textContent = avg.toFixed(d);
+    document.getElementById(ids[4]).textContent = s.vals.length;
+}
+
+/* ── Premium gauge helpers ── */
+function setGauge(arcId, needleId, barId, svgTextId, val, max, alertLevel) {
+    const pct   = Math.min((val != null ? val : 0) / max, 1);
+    const fill  = pct * ARC_FULL;
+    const deg   = -144 + pct * 288;   // rotate from -144° to +144°
+
+    // Arc fill
+    const arc = document.getElementById(arcId);
+    if (arc) arc.setAttribute('stroke-dasharray', `${fill} ${ARC_FULL - fill + 0.01}`);
+
+    // Needle
+    const needle = document.getElementById(needleId);
+    if (needle) needle.style.transform = `rotate(${deg}deg)`;
+
+    // Progress bar
+    const bar = document.getElementById(barId);
+    if (bar) bar.style.width = `${(pct * 100).toFixed(1)}%`;
+
+    // SVG text
+    const txt = document.getElementById(svgTextId);
+    if (txt) txt.textContent = val != null ? (val < 10 ? Number(val).toFixed(2) : Number(val).toFixed(1)) : '—';
+}
+
+function setStatus(elId, alertLevel) {
+    const el = document.getElementById(elId);
+    if (!el) return;
+    el.className = 'gauge-status';
+    if (!alertLevel || alertLevel === 'ok') {
+        el.classList.add('gs-ok');
+        el.textContent = '● Normal';
+    } else if (alertLevel === 'warning') {
+        el.classList.add('gs-warn');
+        el.textContent = '⚠ Warning';
+    } else {
+        el.classList.add('gs-crit');
+        el.textContent = '✕ Critical';
+    }
+}
+
+function makeChart(el, color, name) {
+    const c = new ApexCharts(document.getElementById(el), {
+        series: [{ name, data: [] }],
+        chart: { type:'area', height:200, background:'transparent',
+                 animations:{ enabled:true, dynamicAnimation:{ enabled:true, speed:300 } }, toolbar:{show:false} },
+        colors: [color],
+        fill: { type:'gradient', gradient:{ opacityFrom:.35, opacityTo:.02 } },
+        stroke: { width:2 },
+        xaxis: { type:'datetime', labels:{ style:{ colors:'#6b7fa3' } } },
+        yaxis: { labels:{ style:{ colors:'#6b7fa3' } } },
+        grid: { borderColor:'#1e2d45' },
+        tooltip: { theme:'dark' },
+        theme: { mode:'dark' }
+    });
+    c.render();
+    return c;
+}
+
+async function loadLimits() {
+    const res  = await apiFetch('/api/tests/settings');
+    const data = await res.json();
+    document.getElementById('limitsDisplay').innerHTML = `
+        <div>Max Pressure: <strong style="color:var(--text-primary)">${data.max_pressure_bar} bar</strong></div>
+        <div>Max Temperature: <strong style="color:var(--text-primary)">${data.max_temp_c} °C</strong></div>
+        <div>Max Leakage: <strong style="color:var(--text-primary)">${data.max_leakage_ml_min} mL/min</strong></div>
+        <div>Warning at: <strong style="color:var(--warning)">${data.pressure_warning_pct}%</strong> of max</div>
+        <div>Default Duration: <strong style="color:var(--text-primary)">${data.default_duration_sec}s</strong></div>
+        <div>AI: <strong style="color:${data.ai_enabled?'var(--success)':'var(--danger)'}">${data.ai_enabled?'Enabled':'Disabled'}</strong></div>
+    `;
+    document.getElementById('fPressure').placeholder = data.max_pressure_bar;
+    document.getElementById('fDuration').placeholder = data.default_duration_sec;
+}
+
+async function createSession() {
+    const btn = document.getElementById('btnCreate');
+    btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Starting…';
+    try {
+        const res = await apiFetch('/api/tests/sessions', {
+            method:'POST',
+            body: JSON.stringify({
+                valve_id:        document.getElementById('fValveId').value,
+                valve_type:      document.getElementById('fValveType').value,
+                valve_size:      document.getElementById('fValveSize').value,
+                client_name:     document.getElementById('fClientName').value,
+                test_type:       document.getElementById('fTestType').value,
+                medium:          document.getElementById('fMedium').value,
+                target_pressure: document.getElementById('fPressure').value || null,
+                target_duration: document.getElementById('fDuration').value || null,
+                job_number:      document.getElementById('fJobNumber').value,
+                notes:           document.getElementById('fNotes').value,
+            })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+        await apiFetch(`/api/tests/sessions/${data.session.id}/start`, { method:'PUT' });
+        ACTIVE_SESSION = data.session;
+        // Persist so refresh restores the session
+        sessionStorage.setItem('live_session_id', ACTIVE_SESSION.id);
+        showActivePanel();
+    } catch(e) {
+        alert('Error: ' + e.message);
+        btn.disabled = false; btn.innerHTML = '<i class="fas fa-play"></i> Create &amp; Start Test';
+    }
+}
+
+function showActivePanel() {
+    document.getElementById('setupPanel').style.display = 'none';
+    document.getElementById('activePanel').style.display = '';
+    document.getElementById('sessionBannerText').textContent =
+        `Session ${ACTIVE_SESSION.session_code} | ${ACTIVE_SESSION.valve_id || 'No Valve ID'} | ${ACTIVE_SESSION.test_type}`;
+
+    document.getElementById('btnGoAnalysis').href = `/analysis?session_id=${ACTIVE_SESSION.id}`;
+    setTimeout(() => { document.getElementById('analysisCta').style.display = 'flex'; }, 3000);
+
+    timerSec = 0;
+    timerInterval = setInterval(() => {
+        timerSec++;
+        const m = String(Math.floor(timerSec/60)).padStart(2,'0');
+        const s = String(timerSec%60).padStart(2,'0');
+        document.getElementById('sessionTimer').textContent = `${m}:${s}`;
+    }, 1000);
+
+    cPressure = makeChart('chartPressure', '#00c8ff', 'Pressure (bar)');
+    cTemp     = makeChart('chartTemp',     '#f59e0b', 'Temperature (°C)');
+    cFlow     = makeChart('chartFlow',     '#00e676', 'Flow Rate (L/min)');
+    cLeak     = makeChart('chartLeak',     '#ff6b6b', 'Leakage (mL/min)');
+
+    cCombined = new ApexCharts(document.getElementById('chartCombined'), {
+        series: [
+            { name:'Pressure (bar)',    data:[] },
+            { name:'Temperature (°C)', data:[] },
+            { name:'Flow (L/min)',      data:[] },
+            { name:'Leakage (mL/min)', data:[] }
+        ],
+        chart: { type:'line', height:240, background:'transparent',
+                 animations:{ enabled:true, dynamicAnimation:{ enabled:true, speed:300 } }, toolbar:{show:false} },
+        colors: ['#00c8ff','#f59e0b','#00e676','#ff6b6b'],
+        stroke: { width:[2,2,2,2], curve:'smooth' },
+        xaxis: { type:'datetime', labels:{ style:{ colors:'#6b7fa3' } } },
+        yaxis: { labels:{ style:{ colors:'#6b7fa3' } } },
+        legend: { labels:{ colors:'#8898b3' } },
+        grid: { borderColor:'#1e2d45' },
+        tooltip: { theme:'dark', shared:true, intersect:false },
+        theme: { mode:'dark' }
+    });
+    cCombined.render();
+
+    SOCKET = io();
+    SOCKET.emit('join_session', { session_id: ACTIVE_SESSION.id });
+    SOCKET.on('new_reading', updateLive);
+    SOCKET.on('critical_alert', showCriticalAlert);
+
+    // Pre-fill gauges and charts with existing readings (survives refresh)
+    loadHistoricalReadings(ACTIVE_SESSION.id);
+}
+
+async function loadHistoricalReadings(sessionId) {
+    try {
+        const res  = await apiFetch(`/api/tests/sessions/${sessionId}/readings?limit=100`);
+        if (!res.ok) return;
+        const data = await res.json();
+        const readings = data.readings || [];
+        if (!readings.length) return;
+
+        // Feed all readings into charts (batch)
+        const dp = { p:[], t:[], f:[], l:[] };
+        readings.forEach(r => {
+            const ts = new Date(r.recorded_at).getTime();
+            if (r.pressure_bar   != null) dp.p.push({ x:ts, y:+r.pressure_bar });
+            if (r.temperature_c  != null) dp.t.push({ x:ts, y:+r.temperature_c });
+            if (r.flow_rate_lpm  != null) dp.f.push({ x:ts, y:+r.flow_rate_lpm });
+            if (r.leakage_ml_min != null) dp.l.push({ x:ts, y:+r.leakage_ml_min });
+        });
+
+        if (cPressure && dp.p.length) cPressure.updateSeries([{ name:'Pressure (bar)',    data: dp.p }]);
+        if (cTemp     && dp.t.length) cTemp.updateSeries([{ name:'Temperature (°C)', data: dp.t }]);
+        if (cFlow     && dp.f.length) cFlow.updateSeries([{ name:'Flow Rate (L/min)', data: dp.f }]);
+        if (cLeak     && dp.l.length) cLeak.updateSeries([{ name:'Leakage (mL/min)', data: dp.l }]);
+        if (cCombined && readings.length) {
+            cCombined.updateSeries([
+                { name:'Pressure (bar)',    data: dp.p },
+                { name:'Temperature (°C)', data: dp.t },
+                { name:'Flow (L/min)',      data: dp.f },
+                { name:'Leakage (mL/min)', data: dp.l }
+            ]);
+        }
+
+        // Apply last reading to gauges immediately
+        const last = readings[readings.length - 1];
+        if (last) updateLive(last);
+
+    } catch(e) { /* silent */ }
+}
+
+function updateLive(r) {
+    const ts = new Date(r.recorded_at).getTime();
+
+    const p = r.pressure_bar;
+    setGauge('gaugePressurePath','needlePressure','barPressure','livePressureSvg', p, MAX_P, r.pressure_alert);
+    setStatus('livePressureStatus', r.pressure_alert);
+    if (p != null && cPressure) cPressure.appendData([{ data:[{ x:ts, y:+p }] }]);
+    updateStats('p', p!=null?+p:null, ['stP_cur','stP_min','stP_max','stP_avg','stP_n']);
+
+    const t = r.temperature_c;
+    setGauge('gaugeTempPath','needleTemp','barTemp','liveTempSvg', t, MAX_T, r.temp_alert);
+    setStatus('liveTempStatus', r.temp_alert);
+    if (t != null && cTemp) cTemp.appendData([{ data:[{ x:ts, y:+t }] }]);
+    updateStats('t', t!=null?+t:null, ['stT_cur','stT_min','stT_max','stT_avg','stT_n']);
+
+    const f = r.flow_rate_lpm;
+    setGauge('gaugeFlowPath','needleFlow','barFlow','liveFlowSvg', f, MAX_F, 'ok');
+    if (f != null && cFlow) cFlow.appendData([{ data:[{ x:ts, y:+f }] }]);
+    updateStats('f', f!=null?+f:null, ['stF_cur','stF_min','stF_max','stF_avg','stF_n']);
+
+    const l = r.leakage_ml_min;
+    setGauge('gaugeLeakPath','needleLeak','barLeak','liveLeakageSvg', l, MAX_L, r.leakage_alert);
+    setStatus('liveLeakageStatus', r.leakage_alert);
+    if (l != null && cLeak) cLeak.appendData([{ data:[{ x:ts, y:+l }] }]);
+    updateStats('l', l!=null?+l:null, ['stL_cur','stL_min','stL_max','stL_avg','stL_n']);
+
+    // Combined chart
+    if (cCombined) {
+        const upd = [
+            { data:[{ x:ts, y: p!=null?+p:null }] },
+            { data:[{ x:ts, y: t!=null?+t:null }] },
+            { data:[{ x:ts, y: f!=null?+f:null }] },
+            { data:[{ x:ts, y: l!=null?+l:null }] }
+        ];
+        cCombined.appendData(upd);
+    }
+
+    // Trend row — show after first reading
+    document.getElementById('trendRow').style.display = '';
+
+    // Rate-of-change arrows
+    function setTrend(prevKey, cur, trendId, arrowId) {
+        const prev = stats[prevKey].cur;
+        if (prev == null || cur == null) return;
+        const delta = cur - prev;
+        const el = document.getElementById(trendId);
+        const ar = document.getElementById(arrowId);
+        if (el) el.textContent = (delta >= 0 ? '+' : '') + delta.toFixed(2);
+        if (ar) {
+            ar.className = 'trend-arrow';
+            if (Math.abs(delta) < 0.01) { ar.classList.add('ta-flat'); ar.textContent = '→'; }
+            else if (delta > 0)         { ar.classList.add('ta-up');   ar.textContent = '↑'; }
+            else                        { ar.classList.add('ta-down'); ar.textContent = '↓'; }
+        }
+    }
+    setTrend('p', p!=null?+p:null, 'trendP', 'arrowP');
+    setTrend('t', t!=null?+t:null, 'trendT', 'arrowT');
+    setTrend('f', f!=null?+f:null, 'trendF', 'arrowF');
+    setTrend('l', l!=null?+l:null, 'trendL', 'arrowL');
+
+    // Health score: starts at 100, penalise warnings (-10) and criticals (-25)
+    let score = 100;
+    [r.pressure_alert, r.temp_alert, r.leakage_alert].forEach(a => {
+        if (a === 'warning')  score -= 10;
+        if (a === 'critical') score -= 25;
+    });
+    score = Math.max(0, score);
+    const hs  = document.getElementById('healthScore');
+    const hb  = document.getElementById('healthBar');
+    const hic = document.getElementById('healthIcon');
+    if (hs) { hs.textContent = score; hs.style.color = score >= 70 ? '#00e676' : score >= 40 ? '#f59e0b' : '#ff6b6b'; }
+    if (hb) { hb.style.width = score + '%'; hb.style.background = score >= 70 ? '#00e676' : score >= 40 ? '#f59e0b' : '#ff6b6b'; }
+    if (hic) hic.textContent = score >= 70 ? '✅' : score >= 40 ? '⚠️' : '🚨';
+}
+
+function showCriticalAlert(r) {
+    const area = document.getElementById('alertsArea');
+    const div  = document.createElement('div');
+    div.className = 't-alert t-alert-critical';
+    div.innerHTML = `<i class="fas fa-exclamation-triangle"></i> CRITICAL: Pressure=${r.pressure_bar||'—'} bar | Temp=${r.temperature_c||'—'}°C | Leakage=${r.leakage_ml_min||'—'} mL/min`;
+    area.prepend(div);
+    setTimeout(() => div.remove(), 8000);
+}
+
+async function completeSession(result) {
+    if (!ACTIVE_SESSION) return;
+    if (!confirm(`Mark this test as ${result.toUpperCase()}?`)) return;
+    clearInterval(timerInterval);
+    sessionStorage.removeItem('live_session_id');
+    await apiFetch(`/api/tests/sessions/${ACTIVE_SESSION.id}/complete`, {
+        method:'PUT', body: JSON.stringify({ result })
+    });
+    window.location.href = `/analysis?session_id=${ACTIVE_SESSION.id}`;
+}
+
+async function abortSession() {
+    if (!ACTIVE_SESSION) return;
+    if (!confirm('Abort this test?')) return;
+    clearInterval(timerInterval);
+    sessionStorage.removeItem('live_session_id');
+    await apiFetch(`/api/tests/sessions/${ACTIVE_SESSION.id}/abort`, { method:'PUT' });
+    window.location.reload();
+}
+
+// Auto-restore session on page load / refresh
+async function tryRestoreSession() {
+    const savedId = sessionStorage.getItem('live_session_id');
+    if (!savedId) return;
+    try {
+        const res  = await apiFetch(`/api/tests/sessions/${savedId}`);
+        if (!res.ok) { sessionStorage.removeItem('live_session_id'); return; }
+        const s = await res.json();           // API returns session object directly
+        if (s && s.status === 'running') {
+            ACTIVE_SESSION = s;
+            showActivePanel();
+        } else {
+            sessionStorage.removeItem('live_session_id');
+        }
+    } catch(e) {
+        sessionStorage.removeItem('live_session_id');
+    }
+}
+
+// Show Stop button in setup panel if a running session exists in storage
+(function checkStopBtn() {
+    const savedId = sessionStorage.getItem('live_session_id');
+    if (savedId) {
+        const btn = document.getElementById('btnStopSetup');
+        if (btn) btn.style.display = '';
+    }
+})();
+
+async function stopFromSetup() {
+    const savedId = sessionStorage.getItem('live_session_id');
+    if (!savedId) return;
+    if (!confirm('Stop the currently running test?')) return;
+    try {
+        await apiFetch(`/api/tests/sessions/${savedId}/abort`, { method: 'PUT' });
+    } catch(e) {}
+    sessionStorage.removeItem('live_session_id');
+    window.location.reload();
+}
+
+loadLimits();
+tryRestoreSession();
+</script>
+{% endblock %}

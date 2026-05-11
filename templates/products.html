@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description"
+        content="Browse Testiny industrial products - Test Equipment, Hydraulic Systems, Pneumatic Systems, and Special Machines.">
+    <title>Products | Testiny Equipments</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+
+<body>
+
+    <!-- NAVBAR -->
+    <nav class="navbar" id="navbar">
+        <div class="container">
+            <a href="/" class="nav-logo">
+                <div class="logo-icon"><i class="fas fa-industry"></i></div>
+                <span>TESTINY</span>
+            </a>
+            <div class="nav-links" id="navLinks">
+                <a href="/">Home</a>
+                <a href="/about">About</a>
+                <a href="/products" class="active">Products</a>
+                <a href="/industries">Industries</a>
+                <a href="/compare">Compare</a>
+                <a href="/chat">AI Chat</a>
+                <a href="/contact">Contact</a>
+                <a href="/testing-access" class="nav-testing-link"><i class="fas fa-flask"></i> Testing Access</a>
+            </div>
+            <div class="nav-actions">
+                <button class="theme-toggle" id="themeToggle" aria-label="Toggle Dark Mode">
+                    <i class="fas fa-moon"></i>
+                </button>
+                <button class="hamburger" id="hamburger" aria-label="Menu">
+                    <span></span><span></span><span></span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- PAGE HEADER -->
+    <section class="page-header">
+        <h1>Our Products</h1>
+        <p>Explore our complete range of industrial testing and hydraulic solutions.</p>
+        <div class="breadcrumb">
+            <a href="/">Home</a>
+            <span class="separator">/</span>
+            <span>Products</span>
+        </div>
+    </section>
+
+    <!-- PRODUCTS SECTION -->
+    <section class="section">
+        <div class="container">
+            <!-- Filter Bar -->
+            <div class="filter-bar" id="filterBar">
+                <div class="filter-tabs" id="filterTabs">
+                    <button class="filter-tab active" data-category="all">All Products</button>
+                    <!-- Category tabs loaded dynamically -->
+                </div>
+                <div class="search-box">
+                    <input type="text" id="searchInput" placeholder="Search products...">
+                    <i class="fas fa-search search-icon"></i>
+                </div>
+            </div>
+
+            <!-- Products Grid -->
+            <div class="products-grid" id="productsGrid">
+                <!-- Loading skeleton -->
+                <div class="skeleton skeleton-card"></div>
+                <div class="skeleton skeleton-card"></div>
+                <div class="skeleton skeleton-card"></div>
+            </div>
+
+            <!-- No Results -->
+            <div class="text-center hidden" id="noResults" style="padding: var(--space-3xl);">
+                <i class="fas fa-search"
+                    style="font-size: 3rem; color: var(--text-muted); margin-bottom: var(--space-lg);"></i>
+                <h3>No products found</h3>
+                <p>Try adjusting your search or filter criteria.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-brand">
+                    <span class="footer-logo">⚙ TESTINY EQUIPMENTS</span>
+                    <p>Leading manufacturer of industrial machines, hydraulic systems, and testing equipment.</p>
+                    <div class="footer-social">
+                        <a href="#"><i class="fab fa-linkedin-in"></i></a>
+                        <a href="#"><i class="fab fa-twitter"></i></a>
+                        <a href="#"><i class="fab fa-youtube"></i></a>
+                    </div>
+                </div>
+                <div>
+                    <h4>Quick Links</h4>
+                    <div class="footer-links">
+                        <a href="/">Home</a><a href="/about">About Us</a><a href="/products">Products</a><a
+                            href="/contact">Contact</a>
+                    </div>
+                </div>
+                <div>
+                    <h4>Products</h4>
+                    <div class="footer-links">
+                        <a href="/products?category=1">Test Equipment</a><a href="/products?category=2">Hydraulic
+                            Systems</a>
+                        <a href="/products?category=3">Pneumatic Systems</a><a href="/products?category=4">Special
+                            Machines</a>
+                    </div>
+                </div>
+                <div>
+                    <h4>Contact Us</h4>
+                    <div class="footer-contact">
+                        <p><i class="fas fa-map-marker-alt"></i> Chennai, Tamil Nadu, India</p>
+                        <p><i class="fas fa-phone"></i> +91 98765 43210</p>
+                        <p><i class="fas fa-envelope"></i> info@testiny.com</p>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2026 Testiny Equipments Private Limited. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- FLOATING CHATBOT -->
+    <div class="chatbot-float" id="chatbotFloat">
+        <button class="chatbot-float-btn" id="chatbotFloatBtn"><i class="fas fa-robot"></i><span
+                class="chat-badge">AI</span></button>
+    </div>
+    <div class="mini-chat" id="miniChat">
+        <div class="chat-header">
+            <div class="chat-avatar"><i class="fas fa-robot"></i></div>
+            <div class="chat-info">
+                <h3>Testiny AI</h3>
+                <p><span class="online-dot"></span> Online</p>
+            </div>
+            <button class="close-chat" id="closeMiniChat"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="chat-messages" id="miniChatMessages">
+            <div class="chat-bubble ai">👋 Need help finding the right product? Ask me!</div>
+        </div>
+        <div class="chat-input-area">
+            <input type="text" id="miniChatInput" placeholder="Ask a question..." autocomplete="off">
+            <button id="miniChatSend"><i class="fas fa-paper-plane"></i></button>
+        </div>
+    </div>
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="/static/js/main.js"></script>
+    <script src="/static/js/products.js"></script>
+</body>
+
+</html>

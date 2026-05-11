@@ -1,0 +1,217 @@
+{% extends "testing/base.html" %}
+{% block title %}AI Assistant — Testiny{% endblock %}
+{% block page_title %}<i class="fas fa-microchip" style="color:var(--accent);margin-right:8px"></i>AI Assistant{% endblock %}
+
+{% block content %}
+<div class="t-grid-2" style="align-items:start;gap:24px">
+
+    <!-- Chat Panel -->
+    <div class="t-card" style="display:flex;flex-direction:column;height:calc(100vh - 140px)">
+        <div class="t-card-title">
+            <i class="fas fa-robot" style="margin-right:6px"></i>LLaMA Analysis Assistant
+            <span id="ollamaStatus" style="float:right;font-size:11px;font-weight:400"></span>
+        </div>
+        <div id="chatMessages" style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:12px;padding-right:4px">
+            <div class="ai-msg ai-msg-bot">
+                <div class="ai-msg-icon"><i class="fas fa-robot"></i></div>
+                <div class="ai-msg-body">Hello! I'm your Testiny AI assistant powered by LLaMA. I can analyse test sessions, explain anomalies, and provide recommendations. Ask me anything or use the quick actions on the right.</div>
+            </div>
+        </div>
+        <div style="margin-top:16px;display:flex;gap:8px">
+            <input type="text" id="chatInput" placeholder="Ask about test results, anomalies, recommendations…"
+                style="flex:1;background:var(--bg-base);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text-primary);font-family:var(--font-main);font-size:13px"
+                onkeydown="if(event.key==='Enter')sendChat()">
+            <button class="t-btn t-btn-primary" onclick="sendChat()" id="btnSend"><i class="fas fa-paper-plane"></i></button>
+        </div>
+    </div>
+
+    <!-- Quick Actions & Context -->
+    <div style="display:flex;flex-direction:column;gap:20px">
+
+        <!-- Session Context -->
+        <div class="t-card">
+            <div class="t-card-title">Analyse a Session</div>
+            <div style="display:flex;gap:8px;margin-bottom:12px">
+                <input type="number" id="analyseSessionId" placeholder="Session ID"
+                    style="flex:1;background:var(--bg-base);border:1px solid var(--border);border-radius:8px;padding:9px 14px;color:var(--text-primary);font-family:var(--font-main);font-size:13px">
+                <button class="t-btn t-btn-primary" onclick="analyseSession()"><i class="fas fa-magnifying-glass"></i> Analyse</button>
+            </div>
+            <div id="sessionContext" style="font-size:12px;color:var(--text-muted)">No session loaded</div>
+        </div>
+
+        <!-- Quick prompts -->
+        <div class="t-card">
+            <div class="t-card-title">Quick Actions</div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+                <button class="t-btn t-btn-outline" onclick="quickPrompt('Summarise the recent test failures and suggest corrective actions.')">
+                    <i class="fas fa-triangle-exclamation" style="color:var(--danger)"></i> Analyse Recent Failures
+                </button>
+                <button class="t-btn t-btn-outline" onclick="quickPrompt('What are the main patterns in the leakage data across all completed sessions?')">
+                    <i class="fas fa-droplet" style="color:var(--accent)"></i> Leakage Pattern Analysis
+                </button>
+                <button class="t-btn t-btn-outline" onclick="quickPrompt('Are there any pressure anomalies I should investigate?')">
+                    <i class="fas fa-gauge-high" style="color:var(--warning)"></i> Pressure Anomaly Check
+                </button>
+                <button class="t-btn t-btn-outline" onclick="quickPrompt('Give me a pass rate breakdown and recommendations to improve quality.')">
+                    <i class="fas fa-chart-pie" style="color:var(--success)"></i> Quality Improvement Tips
+                </button>
+                <button class="t-btn t-btn-outline" onclick="quickPrompt('What maintenance should be performed on the testing equipment based on recent calibration logs?')">
+                    <i class="fas fa-wrench" style="color:var(--text-muted)"></i> Maintenance Recommendations
+                </button>
+            </div>
+        </div>
+
+        <!-- Ollama Info -->
+        <div class="t-card" id="modelInfo">
+            <div class="t-card-title">AI Engine</div>
+            <div style="font-size:13px;line-height:1.8;color:var(--text-muted)">
+                <div>Model: <strong style="color:var(--text-primary)" id="aiModelName">—</strong></div>
+                <div>Status: <strong id="aiStatusText">Checking…</strong></div>
+                <div>Endpoint: <span style="font-family:var(--font-mono);font-size:11px">localhost:11434</span></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.ai-msg { display:flex; gap:12px; animation:fadeIn .3s ease; }
+@keyframes fadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:none} }
+.ai-msg-bot .ai-msg-icon { width:32px;height:32px;background:var(--accent-glow);border:1px solid rgba(0,200,255,.3);border-radius:8px;display:grid;place-items:center;color:var(--accent);flex-shrink:0; }
+.ai-msg-user { flex-direction:row-reverse; }
+.ai-msg-user .ai-msg-icon { background:rgba(0,230,118,.1);border:1px solid rgba(0,230,118,.2);border-radius:8px;width:32px;height:32px;display:grid;place-items:center;color:var(--success);flex-shrink:0; }
+.ai-msg-body { background:var(--bg-base);border:1px solid var(--border);border-radius:10px;padding:12px 14px;font-size:13px;line-height:1.7;max-width:90%; }
+.ai-msg-user .ai-msg-body { background:rgba(0,200,255,.06);border-color:rgba(0,200,255,.15); }
+.ai-typing { display:flex;gap:4px;padding:4px 0; }
+.ai-typing span { width:6px;height:6px;background:var(--text-muted);border-radius:50%;animation:bounce .8s infinite; }
+.ai-typing span:nth-child(2){animation-delay:.15s}
+.ai-typing span:nth-child(3){animation-delay:.3s}
+@keyframes bounce{0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-6px)}}
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let conversationHistory = [];
+let currentSessionData = null;
+
+// Check Ollama status
+async function checkOllama() {
+    try {
+        const res  = await apiFetch('/api/admin/ai/status');
+        const data = await res.json();
+        const up   = data.ollama === 'online';
+        document.getElementById('aiStatusText').innerHTML = up
+            ? `<span style="color:var(--success)">● Online</span>`
+            : `<span style="color:var(--danger)">● Offline</span>`;
+        document.getElementById('aiModelName').textContent = data.model || '—';
+        document.getElementById('ollamaStatus').innerHTML  = up
+            ? `<span style="color:var(--success)"><i class="fas fa-circle"></i> AI Online</span>`
+            : `<span style="color:var(--danger)"><i class="fas fa-circle"></i> AI Offline</span>`;
+    } catch { document.getElementById('aiStatusText').innerHTML = `<span style="color:var(--danger)">● Unreachable</span>`; }
+}
+
+function appendMessage(role, text) {
+    const container = document.getElementById('chatMessages');
+    const isBot     = role === 'bot';
+    const div       = document.createElement('div');
+    div.className   = `ai-msg ${isBot ? 'ai-msg-bot' : 'ai-msg-user'}`;
+    div.innerHTML   = `
+        <div class="ai-msg-icon"><i class="fas ${isBot ? 'fa-robot' : 'fa-user'}"></i></div>
+        <div class="ai-msg-body">${text.replace(/\n/g, '<br>')}</div>`;
+    container.appendChild(div);
+    container.scrollTop = container.scrollHeight;
+    return div;
+}
+
+function showTyping() {
+    const container = document.getElementById('chatMessages');
+    const div       = document.createElement('div');
+    div.id          = 'typingIndicator';
+    div.className   = 'ai-msg ai-msg-bot';
+    div.innerHTML   = `<div class="ai-msg-icon"><i class="fas fa-robot"></i></div>
+        <div class="ai-msg-body"><div class="ai-typing"><span></span><span></span><span></span></div></div>`;
+    container.appendChild(div);
+    container.scrollTop = container.scrollHeight;
+}
+
+function hideTyping() {
+    const el = document.getElementById('typingIndicator');
+    if (el) el.remove();
+}
+
+async function sendChat() {
+    const input  = document.getElementById('chatInput');
+    const prompt = input.value.trim();
+    if (!prompt) return;
+    input.value = '';
+    document.getElementById('btnSend').disabled = true;
+
+    appendMessage('user', prompt);
+    conversationHistory.push({ role:'user', content: prompt });
+
+    showTyping();
+
+    // Build enriched prompt with session context if loaded
+    let contextBlock = '';
+    if (currentSessionData) {
+        const s = currentSessionData.session;
+        const st = currentSessionData.stats;
+        contextBlock = `\n\n[SESSION CONTEXT — ${s.session_code}]\nValve: ${s.valve_id||'N/A'} | Type: ${s.test_type} | Medium: ${s.medium}\nMax Pressure: ${st.pressure.max||'—'} bar | Max Temp: ${st.temperature.max||'—'}°C | Max Leakage: ${st.leakage.max||'—'} mL/min\nResult: ${s.result||'in progress'} | Duration: ${s.duration_seconds||'—'}s\n`;
+    }
+
+    try {
+        const res = await fetch('/api/tests/ai/chat', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${window.AUTH_TOKEN}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prompt: prompt + contextBlock })
+        });
+        const data = await res.json();
+        hideTyping();
+        const reply = data.response || data.error || 'No response from AI.';
+        appendMessage('bot', reply);
+        conversationHistory.push({ role:'assistant', content: reply });
+    } catch(e) {
+        hideTyping();
+        appendMessage('bot', '⚠️ Could not reach Ollama. Make sure it is running on port 11434.');
+    }
+
+    document.getElementById('btnSend').disabled = false;
+    document.getElementById('chatInput').focus();
+}
+
+async function analyseSession() {
+    const id = document.getElementById('analyseSessionId').value.trim();
+    if (!id) return;
+    const ctx = document.getElementById('sessionContext');
+    ctx.textContent = 'Loading…';
+
+    try {
+        const res  = await apiFetch(`/api/tests/analysis/session/${id}`);
+        const data = await res.json();
+        currentSessionData = data;
+        const s  = data.session;
+        const st = data.stats;
+        ctx.innerHTML = `
+            <div style="color:var(--text-primary);font-weight:600;margin-bottom:6px">${s.session_code}</div>
+            <div>Valve: ${s.valve_id||'—'} | ${s.test_type}</div>
+            <div>Readings: ${st.reading_count} | Result: <span style="color:${s.result==='passed'?'var(--success)':s.result==='failed'?'var(--danger)':'var(--warning)'}">${s.result||'—'}</span></div>
+            <div>Max P: ${st.pressure.max ? Number(st.pressure.max).toFixed(2)+' bar' : '—'} | Max T: ${st.temperature.max ? Number(st.temperature.max).toFixed(1)+'°C' : '—'}</div>`;
+
+        // Auto-send analysis prompt
+        const autoPrompt = `Analyse session ${s.session_code} for valve ${s.valve_id||'N/A'} (${s.test_type} test, ${s.medium} medium). Max pressure was ${st.pressure.max||'—'} bar, max temperature ${st.temperature.max||'—'}°C, max leakage ${st.leakage.max||'—'} mL/min over ${st.reading_count} readings. Result: ${s.result||'incomplete'}. Provide a technical assessment and any concerns.`;
+        document.getElementById('chatInput').value = autoPrompt;
+        sendChat();
+    } catch(e) {
+        ctx.textContent = 'Failed to load session.';
+    }
+}
+
+function quickPrompt(text) {
+    document.getElementById('chatInput').value = text;
+    sendChat();
+}
+
+checkOllama();
+setInterval(checkOllama, 30000);
+</script>
+{% endblock %}

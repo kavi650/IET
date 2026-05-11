@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Testiny Testing Software{% endblock %}</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
+    <link rel="stylesheet" href="/static/testing/testing.css">
+    {% block head %}{% endblock %}
+</head>
+
+<body>
+
+    <!-- SIDEBAR -->
+    <aside class="t-sidebar" id="sidebar">
+        <div class="t-sidebar-brand">
+            <div class="t-brand-icon"><i class="fas fa-atom"></i></div>
+            <div class="t-brand-text">
+                <span class="t-brand-name">TESTINY</span>
+                <span class="t-brand-sub">Testing Software</span>
+            </div>
+        </div>
+
+        <nav class="t-nav">
+            <a href="/dashboard" class="t-nav-item {% if active == 'dashboard' %}active{% endif %}">
+                <i class="fas fa-gauge-high"></i><span>Dashboard</span>
+            </a>
+            <a href="/live" class="t-nav-item {% if active == 'live' %}active{% endif %}">
+                <i class="fas fa-circle-dot"></i><span>Live Test</span>
+                <span class="t-live-badge" id="liveIndicator" style="display:none">LIVE</span>
+            </a>
+            <a href="/analysis" class="t-nav-item {% if active == 'analysis' %}active{% endif %}">
+                <i class="fas fa-chart-line"></i><span>Analysis</span>
+            </a>
+            <a href="/results" class="t-nav-item {% if active == 'results' %}active{% endif %}">
+                <i class="fas fa-clipboard-check"></i><span>Results</span>
+            </a>
+            <a href="/ai-assistant" class="t-nav-item {% if active == 'ai' %}active{% endif %}">
+                <i class="fas fa-microchip"></i><span>AI Assistant</span>
+            </a>
+            <a href="/logs" class="t-nav-item {% if active == 'logs' %}active{% endif %}">
+                <i class="fas fa-list-check"></i><span>Logs</span>
+            </a>
+            <a href="/settings" class="t-nav-item {% if active == 'settings' %}active{% endif %}">
+                <i class="fas fa-sliders"></i><span>Settings</span>
+            </a>
+
+            <div style="height:1px;background:rgba(255,255,255,.07);margin:12px 16px"></div>
+
+            <a href="/access" class="t-nav-item {% if active == 'access' %}active{% endif %}">
+                <i class="fas fa-key"></i><span>Access</span>
+            </a>
+            <a href="/access/request" class="t-nav-item {% if active == 'request' %}active{% endif %}">
+                <i class="fas fa-paper-plane"></i><span>Request</span>
+            </a>
+
+            <div style="height:1px;background:rgba(255,255,255,.07);margin:12px 16px"></div>
+
+            <a href="http://localhost:5000" class="t-nav-item"
+               style="color:rgba(255,255,255,.4);" target="_blank">
+                <i class="fas fa-arrow-left"></i><span>Back to Home</span>
+            </a>
+        </nav>
+
+        <div class="t-sidebar-footer">
+            <div class="t-machine-status">
+                <span class="t-status-dot" id="machineStatusDot"></span>
+                <span id="machineStatusText">Checking…</span>
+            </div>
+        </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="t-main">
+        <header class="t-topbar">
+            <div class="t-topbar-left">
+                <button class="t-menu-toggle"
+                    onclick="document.getElementById('sidebar').classList.toggle('collapsed')">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <div class="t-page-title">{% block page_title %}Dashboard{% endblock %}</div>
+            </div>
+            <div class="t-topbar-right">
+                <div class="t-time" id="topbarTime"></div>
+                <div class="t-operator-badge"><i class="fas fa-user-helmet-safety"></i> Operator</div>
+            </div>
+        </header>
+
+        <div class="t-content">
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+
+    <script>
+        // Live clock
+        setInterval(() => {
+            document.getElementById('topbarTime').textContent =
+                new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        }, 1000);
+
+        // Auto-read token from URL ?token= param (passed from public testing_access page)
+        (function () {
+            const params = new URLSearchParams(window.location.search);
+            const t = params.get('token');
+            if (t) {
+                sessionStorage.setItem('testiny_token', t);
+                history.replaceState({}, '', window.location.pathname);
+            }
+        })();
+
+        // Token from sessionStorage
+        window.AUTH_TOKEN = sessionStorage.getItem('testiny_token') || '';
+
+        // Authenticated fetch helper
+        async function apiFetch(url, opts = {}) {
+            opts.headers = { ...(opts.headers || {}), 'Authorization': `Bearer ${window.AUTH_TOKEN}`, 'Content-Type': 'application/json' };
+            const res = await fetch(url, opts);
+            if (res.status === 401) {
+                sessionStorage.removeItem('testiny_token');
+                window.location.href = '/access';
+                return res;
+            }
+            return res;
+        }
+    </script>
+    {% block scripts %}{% endblock %}
+</body>
+
+</html>

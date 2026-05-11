@@ -1,0 +1,103 @@
+{% extends "testing/base.html" %}
+{% block title %}Settings — Testiny{% endblock %}
+{% block page_title %}<i class="fas fa-sliders" style="color:var(--accent);margin-right:8px"></i>Settings{% endblock %}
+{% block content %}
+<div class="t-grid-2" style="align-items:start">
+    <div class="t-card">
+        <div class="t-card-title">Machine Limits</div>
+        <div class="t-form-row">
+            <div class="t-form-group"><label>Max Pressure (bar)</label><input type="number" id="sMaxP"></div>
+            <div class="t-form-group"><label>Warning % of Max</label><input type="number" id="sWarnPct"></div>
+        </div>
+        <div class="t-form-row">
+            <div class="t-form-group"><label>Max Leakage (mL/min)</label><input type="number" step="0.1" id="sMaxL"></div>
+            <div class="t-form-group"><label>Leakage Warning (mL/min)</label><input type="number" step="0.1" id="sWarnL"></div>
+        </div>
+        <div class="t-form-row">
+            <div class="t-form-group"><label>Max Temperature (°C)</label><input type="number" id="sMaxT"></div>
+            <div class="t-form-group"><label>Temp Warning (°C)</label><input type="number" id="sWarnT"></div>
+        </div>
+        <div class="t-form-row">
+            <div class="t-form-group"><label>Default Duration (sec)</label><input type="number" id="sDuration"></div>
+            <div class="t-form-group"><label>Reading Interval (ms)</label><input type="number" id="sInterval"></div>
+        </div>
+        <button class="t-btn t-btn-primary" onclick="saveSettings()"><i class="fas fa-save"></i> Save Settings</button>
+        <div id="saveMsg" style="margin-top:10px;font-size:13px"></div>
+    </div>
+
+    <div>
+        <div class="t-card" style="margin-bottom:20px">
+            <div class="t-card-title">AI Configuration</div>
+            <div class="t-form-group"><label>AI Model</label>
+                <select id="sAiModel"><option value="llama3">llama3</option><option value="mistral">mistral</option></select>
+            </div>
+            <div class="t-form-group"><label>Sensitivity</label>
+                <select id="sAiSens"><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select>
+            </div>
+            <div class="t-form-group" style="display:flex;align-items:center;gap:10px">
+                <label style="margin:0">AI Enabled</label>
+                <input type="checkbox" id="sAiEnabled" style="width:auto">
+            </div>
+        </div>
+
+        <div class="t-card">
+            <div class="t-card-title">Calibration Log</div>
+            <div id="calibInfo" style="font-size:13px;color:var(--text-muted);margin-bottom:16px">Loading…</div>
+            <div class="t-form-group"><label>Calibrated By</label><input type="text" id="calName"></div>
+            <div class="t-form-group"><label>Notes</label><textarea id="calNotes" rows="2"></textarea></div>
+            <button class="t-btn t-btn-outline" onclick="logCalibration()"><i class="fas fa-wrench"></i> Log Calibration</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+async function loadSettings() {
+    const data = await (await apiFetch('/api/tests/settings')).json();
+    document.getElementById('sMaxP').value    = data.max_pressure_bar;
+    document.getElementById('sWarnPct').value = data.pressure_warning_pct;
+    document.getElementById('sMaxL').value    = data.max_leakage_ml_min;
+    document.getElementById('sWarnL').value   = data.leakage_warning_ml;
+    document.getElementById('sMaxT').value    = data.max_temp_c;
+    document.getElementById('sWarnT').value   = data.temp_warning_c;
+    document.getElementById('sDuration').value = data.default_duration_sec;
+    document.getElementById('sInterval').value = data.reading_interval_ms;
+    document.getElementById('sAiModel').value  = data.ai_model;
+    document.getElementById('sAiSens').value   = data.ai_sensitivity;
+    document.getElementById('sAiEnabled').checked = data.ai_enabled;
+    document.getElementById('calibInfo').innerHTML = data.last_calibrated_at
+        ? `Last calibrated: <strong style="color:var(--text-primary)">${new Date(data.last_calibrated_at).toLocaleString()}</strong> by <strong style="color:var(--text-primary)">${data.calibrated_by||'—'}</strong><br>${data.calibration_notes||''}`
+        : 'No calibration recorded';
+}
+
+async function saveSettings() {
+    const body = {
+        max_pressure_bar: +document.getElementById('sMaxP').value,
+        pressure_warning_pct: +document.getElementById('sWarnPct').value,
+        max_leakage_ml_min: +document.getElementById('sMaxL').value,
+        leakage_warning_ml: +document.getElementById('sWarnL').value,
+        max_temp_c: +document.getElementById('sMaxT').value,
+        temp_warning_c: +document.getElementById('sWarnT').value,
+        default_duration_sec: +document.getElementById('sDuration').value,
+        reading_interval_ms: +document.getElementById('sInterval').value,
+        ai_model: document.getElementById('sAiModel').value,
+        ai_sensitivity: document.getElementById('sAiSens').value,
+        ai_enabled: document.getElementById('sAiEnabled').checked,
+    };
+    const res = await apiFetch('/api/tests/settings', { method:'PUT', body: JSON.stringify(body) });
+    const msg = document.getElementById('saveMsg');
+    msg.style.color = res.ok ? 'var(--success)' : 'var(--danger)';
+    msg.textContent = res.ok ? '✓ Settings saved' : '✗ Save failed';
+    setTimeout(() => msg.textContent = '', 3000);
+}
+
+async function logCalibration() {
+    const name = document.getElementById('calName').value.trim();
+    if (!name) return alert('Enter calibrator name');
+    await apiFetch('/api/tests/settings/calibrate', { method:'PUT',
+        body: JSON.stringify({ calibrated_by: name, calibration_notes: document.getElementById('calNotes').value }) });
+    loadSettings();
+}
+loadSettings();
+</script>
+{% endblock %}

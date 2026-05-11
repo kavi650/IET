@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Detailed product information, technical specifications, and applications.">
+    <title>Product Details | Testiny Equipments</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+
+<body>
+
+    <!-- NAVBAR -->
+    <nav class="navbar" id="navbar">
+        <div class="container">
+            <a href="/" class="nav-logo">
+                <div class="logo-icon"><i class="fas fa-industry"></i></div>
+                <span>TESTINY</span>
+            </a>
+            <div class="nav-links" id="navLinks">
+                <a href="/">Home</a>
+                <a href="/about">About</a>
+                <a href="/products" class="active">Products</a>
+                <a href="/compare">Compare</a>
+                <a href="/chat">AI Chat</a>
+                <a href="/contact">Contact</a>
+            </div>
+            <div class="nav-actions">
+                <button class="theme-toggle" id="themeToggle"><i class="fas fa-moon"></i></button>
+                <button class="hamburger" id="hamburger"><span></span><span></span><span></span></button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- PAGE HEADER -->
+    <section class="page-header" id="productHeader">
+        <h1 id="productTitle">Loading...</h1>
+        <p id="productCategoryBadge"></p>
+        <div class="breadcrumb">
+            <a href="/">Home</a>
+            <span class="separator">/</span>
+            <a href="/products">Products</a>
+            <span class="separator">/</span>
+            <span id="breadcrumbName">...</span>
+        </div>
+    </section>
+
+    <!-- PRODUCT DETAIL -->
+    <section class="section">
+        <div class="container">
+            <div class="product-detail-grid">
+                <!-- Gallery -->
+                <div class="product-gallery reveal-left">
+                    <img id="productImage" src="" alt="" class="main-image"
+                        onerror="this.style.background='linear-gradient(135deg, #0B3D91, #1a5cc8)'; this.innerHTML='<div style=\'display:flex;align-items:center;justify-content:center;height:100%;color:rgba(255,255,255,0.3);font-size:4rem;\'><i class=\'fas fa-cogs\'></i></div>'">
+                </div>
+
+                <!-- Info -->
+                <div class="product-info reveal-right">
+                    <h1 id="detailName">Loading product details...</h1>
+                    <span class="product-category" id="detailCategory"></span>
+
+                    <p id="detailDescription"
+                        style="margin-top: var(--space-lg); font-size: 1.05rem; line-height: 1.8;"></p>
+
+                    <!-- Tabs -->
+                    <div class="product-tabs">
+                        <button class="product-tab active" data-tab="specs">Specifications</button>
+                        <button class="product-tab" data-tab="principle">Working Principle</button>
+                        <button class="product-tab" data-tab="applications">Applications</button>
+                    </div>
+
+                    <!-- Specs Tab -->
+                    <div class="tab-content active" id="tab-specs">
+                        <table class="specs-table" id="specsTable">
+                            <thead>
+                                <tr>
+                                    <th>Parameter</th>
+                                    <th>Value</th>
+                                </tr>
+                            </thead>
+                            <tbody id="specsBody">
+                                <tr>
+                                    <td colspan="2" class="text-center">Loading...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Working Principle Tab -->
+                    <div class="tab-content" id="tab-principle">
+                        <div id="principleContent" style="line-height: 1.9; color: var(--text-secondary);"></div>
+                    </div>
+
+                    <!-- Applications Tab -->
+                    <div class="tab-content" id="tab-applications">
+                        <div id="applicationsContent" style="line-height: 1.9; color: var(--text-secondary);"></div>
+                    </div>
+
+                    <!-- Actions -->
+                    <div style="display: flex; gap: var(--space-md); margin-top: var(--space-2xl); flex-wrap: wrap;">
+                        <a href="/contact" class="btn btn-primary btn-lg">
+                            <i class="fas fa-file-invoice"></i> Request Quote
+                        </a>
+                        <a href="/chat" class="btn btn-blue">
+                            <i class="fas fa-robot"></i> Ask AI About This
+                        </a>
+                        <a href="/compare" class="btn btn-outline-dark">
+                            <i class="fas fa-columns"></i> Compare Products
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- RELATED PRODUCTS -->
+    <section class="section" style="background: var(--bg-secondary);">
+        <div class="container">
+            <div class="section-header">
+                <h2>Related Products</h2>
+                <p>Explore more products in this category.</p>
+            </div>
+            <div class="products-grid" id="relatedProducts">
+                <div class="skeleton skeleton-card"></div>
+                <div class="skeleton skeleton-card"></div>
+                <div class="skeleton skeleton-card"></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-brand">
+                    <span class="footer-logo">⚙ TESTINY EQUIPMENTS</span>
+                    <p>Leading manufacturer of industrial machines, hydraulic systems, and testing equipment.</p>
+                </div>
+                <div>
+                    <h4>Quick Links</h4>
+                    <div class="footer-links">
+                        <a href="/">Home</a><a href="/about">About Us</a><a href="/products">Products</a><a
+                            href="/contact">Contact</a>
+                    </div>
+                </div>
+                <div>
+                    <h4>Products</h4>
+                    <div class="footer-links">
+                        <a href="/products?category=1">Test Equipment</a><a href="/products?category=2">Hydraulic
+                            Systems</a>
+                        <a href="/products?category=3">Pneumatic Systems</a><a href="/products?category=4">Special
+                            Machines</a>
+                    </div>
+                </div>
+                <div>
+                    <h4>Contact Us</h4>
+                    <div class="footer-contact">
+                        <p><i class="fas fa-map-marker-alt"></i> Chennai, Tamil Nadu, India</p>
+                        <p><i class="fas fa-phone"></i> +91 98765 43210</p>
+                        <p><i class="fas fa-envelope"></i> info@testiny.com</p>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2026 Testiny Equipments Private Limited. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- FLOATING CHATBOT -->
+    <div class="chatbot-float" id="chatbotFloat">
+        <button class="chatbot-float-btn" id="chatbotFloatBtn"><i class="fas fa-robot"></i><span
+                class="chat-badge">AI</span></button>
+    </div>
+    <div class="mini-chat" id="miniChat">
+        <div class="chat-header">
+            <div class="chat-avatar"><i class="fas fa-robot"></i></div>
+            <div class="chat-info">
+                <h3>Testiny AI</h3>
+                <p><span class="online-dot"></span> Online</p>
+            </div>
+            <button class="close-chat" id="closeMiniChat"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="chat-messages" id="miniChatMessages">
+            <div class="chat-bubble ai">👋 Need product details? Ask me!</div>
+        </div>
+        <div class="chat-input-area">
+            <input type="text" id="miniChatInput" placeholder="Ask a question..." autocomplete="off">
+            <button id="miniChatSend"><i class="fas fa-paper-plane"></i></button>
+        </div>
+    </div>
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="/static/js/main.js"></script>
+    <script src="/static/js/product_detail.js"></script>
+</body>
+
+</html>

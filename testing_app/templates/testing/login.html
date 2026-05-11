@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login — Testiny Testing Software</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #0a0f1a;
+            color: #e8f0fe;
+            min-height: 100vh;
+            display: grid;
+            place-items: center;
+        }
+        .login-wrap {
+            width: 420px;
+            padding: 48px 40px;
+            background: #111827;
+            border: 1px solid #1e2d45;
+            border-radius: 16px;
+            box-shadow: 0 24px 64px rgba(0,0,0,.6);
+        }
+        .brand {
+            text-align: center;
+            margin-bottom: 36px;
+        }
+        .brand-icon {
+            width: 56px; height: 56px;
+            background: linear-gradient(135deg, #00c8ff, #006fff);
+            border-radius: 14px;
+            display: grid; place-items: center;
+            font-size: 24px;
+            margin: 0 auto 14px;
+        }
+        .brand-name { font-size: 18px; font-weight: 700; letter-spacing: 3px; color: #00c8ff; }
+        .brand-sub  { font-size: 12px; color: #6b7fa3; margin-top: 4px; }
+
+        h2 { font-size: 20px; font-weight: 700; margin-bottom: 6px; }
+        .subtitle { font-size: 13px; color: #6b7fa3; margin-bottom: 28px; }
+
+        .form-group { margin-bottom: 18px; }
+        .form-group label {
+            display: block; font-size: 11px; font-weight: 600;
+            color: #6b7fa3; margin-bottom: 6px; letter-spacing: .8px; text-transform: uppercase;
+        }
+        .form-group input {
+            width: 100%;
+            background: #0a0f1a;
+            border: 1.5px solid #1e2d45;
+            border-radius: 10px;
+            padding: 12px 14px;
+            color: #e8f0fe;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            transition: border .2s;
+        }
+        .form-group input:focus { outline: none; border-color: #00c8ff; box-shadow: 0 0 0 3px rgba(0,200,255,.1); }
+        .form-group input::placeholder { color: #3a4a60; font-family: 'Inter', sans-serif; }
+
+        .btn {
+            width: 100%;
+            padding: 13px;
+            background: #00c8ff;
+            color: #000;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: 'Inter', sans-serif;
+            transition: background .2s, box-shadow .2s;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+        }
+        .btn:hover { background: #00e5ff; box-shadow: 0 0 20px rgba(0,200,255,.3); }
+        .btn:disabled { opacity: .5; cursor: not-allowed; }
+
+        .error-msg {
+            background: rgba(255,23,68,.12);
+            border: 1px solid rgba(255,23,68,.3);
+            color: #ff1744;
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-size: 13px;
+            margin-bottom: 16px;
+            display: none;
+        }
+
+        .divider { text-align: center; color: #3a4a60; font-size: 12px; margin: 20px 0; }
+
+        .dev-note {
+            background: rgba(0,200,255,.06);
+            border: 1px solid rgba(0,200,255,.15);
+            border-radius: 8px;
+            padding: 12px 14px;
+            font-size: 12px;
+            color: #6b7fa3;
+            line-height: 1.6;
+        }
+        .dev-note strong { color: #00c8ff; }
+
+        .footer-link {
+            text-align: center;
+            margin-top: 24px;
+            font-size: 12px;
+            color: #3a4a60;
+        }
+        .footer-link a { color: #6b7fa3; text-decoration: none; }
+        .footer-link a:hover { color: #00c8ff; }
+    </style>
+</head>
+<body>
+
+<div class="login-wrap">
+    <div class="brand">
+        <div class="brand-icon"><i class="fas fa-atom"></i></div>
+        <div class="brand-name">TESTINY</div>
+        <div class="brand-sub">Industrial Testing Software</div>
+    </div>
+
+    <h2>Enter Access Token</h2>
+    <p class="subtitle">Use the token approved by your administrator to access the testing platform.</p>
+
+    <div class="error-msg" id="errorMsg"><i class="fas fa-exclamation-circle"></i> <span id="errorText"></span></div>
+
+    <div class="form-group">
+        <label>Access Token</label>
+        <input type="text" id="tokenInput" placeholder="Paste your access token here…"
+            onkeydown="if(event.key==='Enter') login()">
+    </div>
+
+    <button class="btn" id="loginBtn" onclick="login()">
+        <i class="fas fa-unlock"></i> Access Testing Software
+    </button>
+
+    <div class="divider">— or —</div>
+
+    <div class="dev-note">
+        <strong>Don't have a token?</strong><br>
+        Visit <a href="http://localhost:5000/testing-access" style="color:#00c8ff" target="_blank">localhost:5000/testing-access</a>
+        to submit an access request. Once approved by the admin, your token will be provided.
+    </div>
+
+    <div class="footer-link">
+        <a href="http://localhost:5000" target="_blank"><i class="fas fa-arrow-left"></i> Back to Testiny Website</a>
+    </div>
+</div>
+
+<script>
+// If already logged in, go straight to dashboard
+if (sessionStorage.getItem('testiny_token')) {
+    window.location.href = '/dashboard';
+}
+
+// Auto-login if token is passed as URL ?token= param (from testing_access.html)
+(function() {
+    const params = new URLSearchParams(window.location.search);
+    const t = params.get('token');
+    if (t) {
+        document.getElementById('tokenInput').value = t;
+        // Clean token from URL so it's not visible/bookmarked
+        history.replaceState({}, '', '/login');
+        // Auto-submit
+        login();
+    }
+})();
+
+async function login() {
+    const token  = document.getElementById('tokenInput').value.trim();
+    const errMsg = document.getElementById('errorMsg');
+    const errTxt = document.getElementById('errorText');
+    const btn    = document.getElementById('loginBtn');
+
+    if (!token) {
+        errTxt.textContent = 'Please enter your access token.';
+        errMsg.style.display = '';
+        return;
+    }
+
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verifying…';
+    errMsg.style.display = 'none';
+
+    try {
+        // Verify token against main app
+        const res  = await fetch(`http://localhost:5000/api/access/verify/${token}`);
+        const data = await res.json();
+
+        if (res.ok && data.valid) {
+            sessionStorage.setItem('testiny_token', token);
+            sessionStorage.setItem('testiny_user', JSON.stringify(data));
+            window.location.href = '/dashboard';
+        } else {
+            errTxt.textContent = data.reason || 'Invalid or expired token.';
+            errMsg.style.display = '';
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-unlock"></i> Access Testing Software';
+        }
+    } catch(e) {
+        errTxt.textContent = 'Could not reach main server. Make sure it is running on port 5000.';
+        errMsg.style.display = '';
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-unlock"></i> Access Testing Software';
+    }
+}
+</script>
+
+</body>
+</html>

@@ -1,0 +1,56 @@
+{% extends "testing/base.html" %}
+{% block title %}Logs — Testiny{% endblock %}
+{% block page_title %}<i class="fas fa-list-check" style="color:var(--accent);margin-right:8px"></i>Test Logs{% endblock %}
+{% block content %}
+<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px">
+    <select id="fStatus" class="t-btn t-btn-outline" onchange="loadLogs()" style="font-family:var(--font-main)">
+        <option value="">All Statuses</option><option value="completed">Completed</option>
+        <option value="running">Running</option><option value="aborted">Aborted</option>
+    </select>
+    <select id="fResult" class="t-btn t-btn-outline" onchange="loadLogs()" style="font-family:var(--font-main)">
+        <option value="">All Results</option><option value="passed">Passed</option>
+        <option value="failed">Failed</option><option value="inconclusive">Inconclusive</option>
+    </select>
+    <input type="text" id="fOperator" placeholder="Operator name…" onkeyup="loadLogs()"
+        style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:9px 14px;color:var(--text-primary);font-family:var(--font-main);font-size:13px">
+</div>
+<div class="t-card">
+    <div class="t-table-wrap">
+        <table class="t-table">
+            <thead><tr><th>Code</th><th>Valve ID</th><th>Type</th><th>Operator</th><th>Status</th><th>Result</th><th>Duration</th><th>Created</th><th></th></tr></thead>
+            <tbody id="logsTbody"><tr><td colspan="9" style="text-align:center;padding:40px;color:var(--text-muted)">Loading…</td></tr></tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+function badge(val, type='result') {
+    const map = { passed:'t-badge-passed', failed:'t-badge-failed', inconclusive:'t-badge-inconclusive',
+                  running:'t-badge-running', setup:'t-badge-setup', completed:'t-badge-completed', aborted:'t-badge-aborted' };
+    return `<span class="t-badge ${map[val]||'t-badge-setup'}">${val||'—'}</span>`;
+}
+function fmtD(sec) { if(!sec) return '—'; return Math.floor(sec/60)+'m '+(sec%60)+'s'; }
+
+async function loadLogs() {
+    const params = new URLSearchParams({
+        status:   document.getElementById('fStatus').value,
+        result:   document.getElementById('fResult').value,
+        operator: document.getElementById('fOperator').value,
+        per_page: 30,
+    });
+    const data = await (await apiFetch('/api/tests/logs?'+params)).json();
+    const tbody = document.getElementById('logsTbody');
+    tbody.innerHTML = data.logs.length ? data.logs.map(s=>`
+        <tr>
+            <td><span style="font-family:var(--font-mono);font-size:12px">${s.session_code}</span></td>
+            <td>${s.valve_id||'—'}</td><td>${s.test_type}</td><td>${s.operator_name}</td>
+            <td>${badge(s.status)}</td><td>${badge(s.result||'—')}</td>
+            <td>${fmtD(s.duration_seconds)}</td>
+            <td style="color:var(--text-muted)">${new Date(s.created_at).toLocaleString()}</td>
+            <td><a href="/analysis?session_id=${s.id}" class="t-btn t-btn-outline" style="padding:4px 10px;font-size:12px"><i class="fas fa-chart-line"></i></a></td>
+        </tr>`).join('') : '<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--text-muted)">No logs found</td></tr>';
+}
+loadLogs();
+</script>
+{% endblock %}
