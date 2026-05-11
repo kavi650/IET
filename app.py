@@ -30,7 +30,13 @@ from blueprints.public_v3      import public_v3_bp
 from blueprints.access         import access_bp
 from blueprints.testing_admin  import testing_admin_bp
 from blueprints.ai_admin       import ai_admin_bp
+from flask import Blueprint
 
+main_bp = Blueprint('main', __name__)
+
+@main_bp.route("/")
+def home():
+    return "Teslead Flask App Running Successfully!"
 
 def create_app(config_object=Config):
     app = Flask(__name__)
