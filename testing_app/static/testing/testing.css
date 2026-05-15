@@ -22,6 +22,41 @@
     --transition:   .2s ease;
 }
 
+/* ── Light Theme ─────────────────────────────────────────── */
+[data-theme="light"] {
+    --bg-base:      #f0f4f8;
+    --bg-card:      #ffffff;
+    --bg-sidebar:   #1a2640;
+    --border:       #d1dce8;
+    --accent:       #0078d4;
+    --accent-glow:  rgba(0,120,212,.15);
+    --success:      #00875a;
+    --warning:      #d97706;
+    --danger:       #dc2626;
+    --text-primary: #0f172a;
+    --text-muted:   #64748b;
+}
+
+/* Sidebar stays dark in light mode for contrast */
+[data-theme="light"] .t-sidebar {
+    background: #1a2640;
+    border-right-color: #243354;
+}
+[data-theme="light"] .t-sidebar-brand { border-bottom-color: #243354; }
+[data-theme="light"] .t-nav-item { color: #8faad4; }
+[data-theme="light"] .t-nav-item:hover { background: rgba(0,120,212,.15); color: #fff; }
+[data-theme="light"] .t-nav-item.active { background: rgba(0,120,212,.2); color: #60b8ff; border-color: rgba(0,120,212,.35); }
+[data-theme="light"] .t-sidebar-footer { border-top-color: #243354; }
+[data-theme="light"] .t-machine-status { color: #8faad4; }
+
+/* Smooth transitions everywhere */
+body, .t-card, .t-kpi, .t-gauge-card, .t-topbar,
+.t-table th, .t-table td, .t-form-group input,
+.t-form-group select, .t-form-group textarea,
+.t-btn-outline, .t-alert {
+    transition: background-color .25s ease, color .25s ease, border-color .25s ease;
+}
+
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {

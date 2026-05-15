@@ -13,6 +13,8 @@
     <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
     <link rel="stylesheet" href="{{ testing_base }}/static/testing/testing.css">
+    <!-- Apply saved theme before render to prevent flash -->
+    <script>(function(){var t=localStorage.getItem('testiny_theme')||'dark';document.documentElement.setAttribute('data-theme',t);})();</script>
     {% block head %}{% endblock %}
 </head>
 
@@ -89,6 +91,15 @@
             </div>
             <div class="t-topbar-right">
                 <div class="t-time" id="topbarTime"></div>
+                <!-- Theme Toggle -->
+                <button id="themeToggle" onclick="toggleTheme()"
+                    title="Toggle light/dark theme"
+                    style="background:none;border:1px solid var(--border);border-radius:8px;padding:6px 10px;
+                           color:var(--text-muted);cursor:pointer;font-size:14px;display:flex;align-items:center;gap:6px;
+                           transition:all .2s ease">
+                    <i id="themeIcon" class="fas fa-moon"></i>
+                    <span id="themeLabel" style="font-size:11px;font-weight:600;letter-spacing:.5px">DARK</span>
+                </button>
                 <div class="t-operator-badge"><i class="fas fa-user-helmet-safety"></i> Operator</div>
             </div>
         </header>
@@ -99,6 +110,44 @@
     </main>
 
     <script>
+        // ── Theme: apply saved preference BEFORE render to prevent flash ──
+        (function(){
+            const saved = localStorage.getItem('testiny_theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', saved);
+        })();
+
+        function toggleTheme() {
+            const html = document.documentElement;
+            const current = html.getAttribute('data-theme') || 'dark';
+            const next = current === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', next);
+            localStorage.setItem('testiny_theme', next);
+            updateThemeBtn(next);
+        }
+
+        function updateThemeBtn(theme) {
+            const icon  = document.getElementById('themeIcon');
+            const label = document.getElementById('themeLabel');
+            const btn   = document.getElementById('themeToggle');
+            if (!icon) return;
+            if (theme === 'light') {
+                icon.className  = 'fas fa-sun';
+                label.textContent = 'LIGHT';
+                btn.style.color = '#d97706';
+                btn.style.borderColor = '#fde68a';
+            } else {
+                icon.className  = 'fas fa-moon';
+                label.textContent = 'DARK';
+                btn.style.color = '';
+                btn.style.borderColor = '';
+            }
+        }
+
+        // Apply button state on load
+        document.addEventListener('DOMContentLoaded', () => {
+            updateThemeBtn(localStorage.getItem('testiny_theme') || 'dark');
+        });
+
         // Live clock
         setInterval(() => {
             document.getElementById('topbarTime').textContent =
