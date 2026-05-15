@@ -33,6 +33,18 @@
     </div>
 </div>
 
+<!-- Running Tests Card -->
+<div id="runningCard" class="t-card" style="margin-bottom:24px;display:none">
+    <div class="t-card-title" style="display:flex;align-items:center;justify-content:space-between">
+        <span>
+            <i class="fas fa-circle-dot" style="color:#00e676;animation:pulse-dot 1.2s infinite;margin-right:8px"></i>
+            Running Tests
+        </span>
+        <span id="dashRunningCount" style="font-size:12px;color:rgba(255,255,255,.4)"></span>
+    </div>
+    <div id="dashRunningList"></div>
+</div>
+
 <!-- Live Gauges (show last reading if active session) -->
 <div class="t-gauge-grid" id="gaugeGrid">
     <div class="t-gauge-card">
@@ -213,8 +225,92 @@
         }).render();
     }
 
+    // ── Running Tests on Dashboard ─────────────────────────
+    async function loadRunningDash() {
+        const card  = document.getElementById('runningCard');
+        const list  = document.getElementById('dashRunningList');
+        const badge = document.getElementById('dashRunningCount');
+        if (!card) return;
+        try {
+            const res  = await apiFetch('/api/tests/sessions?status=running&per_page=20');
+            if (!res.ok) return;
+            const data = await res.json();
+            const sessions = data.sessions || [];
+            badge.textContent = `${sessions.length} active`;
+            if (!sessions.length) { card.style.display = 'none'; return; }
+            card.style.display = '';
+
+            list.innerHTML = `
+            <div style="overflow-x:auto">
+            <table style="width:100%;border-collapse:collapse;font-size:13px">
+                <thead>
+                    <tr style="color:rgba(255,255,255,.4);font-size:10px;letter-spacing:1px;text-transform:uppercase;border-bottom:1px solid rgba(255,255,255,.08)">
+                        <th style="padding:8px 12px;text-align:left">Session</th>
+                        <th style="padding:8px 12px;text-align:left">Valve ID</th>
+                        <th style="padding:8px 12px;text-align:left">Type</th>
+                        <th style="padding:8px 12px;text-align:left">Operator</th>
+                        <th style="padding:8px 12px;text-align:left">Running</th>
+                        <th style="padding:8px 12px;text-align:center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="dashRunningTbody"></tbody>
+            </table>
+            </div>`;
+
+            const tbody = document.getElementById('dashRunningTbody');
+            sessions.forEach(s => {
+                const elapsed = s.started_at ? (() => {
+                    const sec = Math.floor((Date.now() - new Date(s.started_at + 'Z')) / 1000);
+                    return `${String(Math.floor(sec/60)).padStart(2,'0')}:${String(sec%60).padStart(2,'0')}`;
+                })() : '—';
+                const tr = document.createElement('tr');
+                tr.style.cssText = 'border-bottom:1px solid rgba(255,255,255,.04);transition:background .15s';
+                tr.onmouseenter = () => tr.style.background = 'rgba(255,255,255,.03)';
+                tr.onmouseleave = () => tr.style.background = '';
+                tr.innerHTML = `
+                    <td style="padding:10px 12px">
+                        <span style="font-family:'JetBrains Mono',monospace;color:#00c8ff;font-size:12px">${s.session_code}</span>
+                    </td>
+                    <td style="padding:10px 12px;color:#e8f0fe">${s.valve_id || '<span style="color:rgba(255,255,255,.3)">—</span>'}</td>
+                    <td style="padding:10px 12px">
+                        <span style="background:rgba(0,200,255,.12);color:#00c8ff;border:1px solid rgba(0,200,255,.2);border-radius:20px;padding:2px 10px;font-size:11px">${s.test_type}</span>
+                    </td>
+                    <td style="padding:10px 12px;color:rgba(255,255,255,.6);font-size:12px">${s.operator_name || '—'}</td>
+                    <td style="padding:10px 12px;font-family:'JetBrains Mono',monospace;font-size:12px;color:#00e676">
+                        <i class="fas fa-clock" style="margin-right:4px;font-size:10px"></i>${elapsed}
+                    </td>
+                    <td style="padding:10px 12px;text-align:center;white-space:nowrap">
+                        <a href="${window.TESTING_BASE}/live"
+                            style="background:#0066ff;color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:12px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;margin-right:6px;display:inline-flex;align-items:center;gap:5px;text-decoration:none">
+                            <i class="fas fa-play"></i> Resume
+                        </a>
+                        <button onclick="dashStopSession(${s.id}, this)"
+                            style="background:rgba(255,107,107,.12);color:#ff6b6b;border:1px solid rgba(255,107,107,.25);border-radius:8px;padding:6px 14px;font-size:12px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;display:inline-flex;align-items:center;gap:5px">
+                            <i class="fas fa-stop-circle"></i> Stop
+                        </button>
+                    </td>`;
+                tbody.appendChild(tr);
+            });
+        } catch(e) { /* silent */ }
+    }
+
+    async function dashStopSession(id, btn) {
+        if (!confirm('Stop this test session?')) return;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        try {
+            await apiFetch(`/api/tests/sessions/${id}/abort`, { method: 'PUT' });
+            loadRunningDash();
+            loadDashboard();
+        } catch(e) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-stop-circle"></i> Stop';
+        }
+    }
+
     loadDashboard();
     loadCharts();
-    setInterval(loadDashboard, 5000);  // auto-refresh every 5s
+    loadRunningDash();
+    setInterval(() => { loadDashboard(); loadRunningDash(); }, 5000);
 </script>
 {% endblock %}

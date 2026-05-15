@@ -1,16 +1,38 @@
 {% extends "testing/base.html" %}
 {% block title %}Results — Testiny{% endblock %}
-{% block page_title %}<i class="fas fa-clipboard-check" style="color:var(--success);margin-right:8px"></i>Results & Reports{% endblock %}
+{% block page_title %}<i class="fas fa-clipboard-check" style="color:var(--success);margin-right:8px"></i>Results &amp; Reports{% endblock %}
+
+{% block head %}
+<style>
+.results-chart-grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:24px; }
+@media(max-width:700px){ .results-chart-grid{ grid-template-columns:1fr; } }
+</style>
+{% endblock %}
 
 {% block content %}
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
-    <div style="display:flex;gap:8px">
-        <button class="t-btn t-btn-outline" onclick="loadResults('all')">All</button>
-        <button class="t-btn t-btn-outline" onclick="loadResults('passed')" style="color:var(--success)">Passed</button>
-        <button class="t-btn t-btn-outline" onclick="loadResults('failed')" style="color:var(--danger)">Failed</button>
-        <button class="t-btn t-btn-outline" onclick="loadResults('inconclusive')" style="color:var(--warning)">Inconclusive</button>
+
+<!-- Charts row -->
+<div class="results-chart-grid">
+    <div class="t-card">
+        <div class="t-card-title"><i class="fas fa-chart-pie" style="color:#00e676;margin-right:6px"></i>Pass vs Fail</div>
+        <div id="donutChart" style="min-height:240px"></div>
+    </div>
+    <div class="t-card">
+        <div class="t-card-title"><i class="fas fa-chart-bar" style="color:#00c8ff;margin-right:6px"></i>Monthly Trend</div>
+        <div id="trendChart" style="min-height:240px"></div>
+    </div>
+</div>
+
+<!-- Filter + search bar -->
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:10px">
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="t-btn t-btn-outline" id="fAll"           onclick="applyFilter('all')">All</button>
+        <button class="t-btn t-btn-outline" id="fPassed"        onclick="applyFilter('passed')"        style="color:var(--success)">Passed</button>
+        <button class="t-btn t-btn-outline" id="fFailed"        onclick="applyFilter('failed')"        style="color:var(--danger)">Failed</button>
+        <button class="t-btn t-btn-outline" id="fInconclusive"  onclick="applyFilter('inconclusive')"  style="color:var(--warning)">Inconclusive</button>
     </div>
     <input type="text" id="searchInput" placeholder="Search valve ID, operator…"
+        oninput="filterLocal()"
         style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:8px 14px;color:var(--text-primary);width:220px;font-family:var(--font-main);font-size:13px">
 </div>
 
@@ -28,8 +50,8 @@
 </div>
 
 <!-- Sign modal -->
-<div id="signModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;display:none;place-items:center">
-    <div class="t-card" style="width:400px">
+<div id="signModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;place-items:center">
+    <div class="t-card" style="width:420px;max-width:90vw">
         <div class="t-card-title">Sign Result</div>
         <div class="t-form-group">
             <label>Engineer Name</label>
@@ -46,50 +68,163 @@
 {% block scripts %}
 <script>
 let currentFilter = 'all', currentPage = 1, signingSessionId = null;
+let allRows = [];  // for client-side search
 
 function badgeClass(r) {
-    return { passed:'t-badge-passed', failed:'t-badge-failed', inconclusive:'t-badge-inconclusive' }[r] || 't-badge-setup';
+    return { passed:'t-badge-passed', failed:'t-badge-failed',
+             inconclusive:'t-badge-inconclusive', aborted:'t-badge-aborted' }[r] || 't-badge-setup';
+}
+
+function applyFilter(f) {
+    currentFilter = f; currentPage = 1;
+    ['all','passed','failed','inconclusive'].forEach(x => {
+        document.getElementById('f' + x.charAt(0).toUpperCase() + x.slice(1))
+            ?.style.setProperty('opacity', x === f ? '1' : '0.5');
+    });
+    loadResults(f, 1);
 }
 
 async function loadResults(filter='all', page=1) {
     currentFilter = filter; currentPage = page;
-    const url = filter === 'all'
+    const q = filter === 'all'
         ? `/api/tests/results?page=${page}&per_page=15`
         : `/api/tests/results?result=${filter}&page=${page}&per_page=15`;
-    const data = await (await apiFetch(url)).json();
-    const tbody = document.getElementById('resultsTbody');
-    tbody.innerHTML = data.results.length ? data.results.map(s => {
-        const sum = s.summary || {};
-        return `<tr>
-            <td><span style="font-family:var(--font-mono);font-size:12px">${s.session_code}</span></td>
-            <td>${s.valve_id||'—'}</td>
-            <td>${s.test_type}</td>
-            <td>${s.operator_name}</td>
-            <td>${sum.max_pressure_bar ? Number(sum.max_pressure_bar).toFixed(2)+' bar' : '—'}</td>
-            <td>${sum.max_leakage_ml_min ? Number(sum.max_leakage_ml_min).toFixed(3)+' mL/min' : '—'}</td>
-            <td>${s.duration_seconds ? Math.floor(s.duration_seconds/60)+'m '+(s.duration_seconds%60)+'s' : '—'}</td>
-            <td><span class="t-badge ${badgeClass(s.result)}">${s.result||'—'}</span></td>
-            <td style="color:var(--text-muted)">${s.ended_at ? new Date(s.ended_at).toLocaleDateString() : '—'}</td>
-            <td style="display:flex;gap:6px">
-                <a href="/analysis?session_id=${s.id}" class="t-btn t-btn-outline" style="padding:4px 10px;font-size:12px"><i class="fas fa-chart-line"></i></a>
-                <a href="/api/tests/sessions/${s.id}/export/csv" class="t-btn t-btn-outline" style="padding:4px 10px;font-size:12px"><i class="fas fa-download"></i></a>
-                ${!sum.engineer_signed_by ? `<button class="t-btn t-btn-outline" style="padding:4px 10px;font-size:12px" onclick="openSignModal(${s.id})"><i class="fas fa-signature"></i></button>` : `<span style="font-size:11px;color:var(--success)"><i class="fas fa-check-circle"></i> ${sum.engineer_signed_by}</span>`}
-            </td>
-        </tr>`;
-    }).join('') : '<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--text-muted)">No results found</td></tr>';
+    try {
+        const res  = await apiFetch(q);
+        if (!res.ok) { showTableMsg('Error loading results'); return; }
+        const data = await res.json();
+        allRows = data.results || [];
+        renderTable(allRows);
+        renderPagination(data.pages, page);
+    } catch(e) { showTableMsg('Failed to load: ' + e.message); }
 }
 
-function openSignModal(id) { signingSessionId = id; document.getElementById('signModal').style.display='grid'; }
-function closeSignModal() { document.getElementById('signModal').style.display='none'; signingSessionId=null; }
+function showTableMsg(msg) {
+    document.getElementById('resultsTbody').innerHTML =
+        `<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--text-muted)">${msg}</td></tr>`;
+}
 
+function renderTable(rows) {
+    const tbody = document.getElementById('resultsTbody');
+    if (!rows.length) { showTableMsg('No results found'); return; }
+    tbody.innerHTML = rows.map(s => {
+        const sum = s.summary || {};
+        const analysisUrl = `${TESTING_BASE}/analysis?session_id=${s.id}`;
+        return `<tr>
+            <td><span style="font-family:var(--font-mono);font-size:12px">${s.session_code}</span></td>
+            <td>${s.valve_id || '—'}</td>
+            <td>${s.test_type}</td>
+            <td>${s.operator_name}</td>
+            <td>${sum.max_pressure_bar ? Number(sum.max_pressure_bar).toFixed(1)+' bar' : '—'}</td>
+            <td>${sum.max_leakage_ml_min ? Number(sum.max_leakage_ml_min).toFixed(3)+' mL' : '—'}</td>
+            <td>${s.duration_seconds ? Math.floor(s.duration_seconds/60)+'m '+(s.duration_seconds%60)+'s' : '—'}</td>
+            <td><span class="t-badge ${badgeClass(s.result)}">${s.result || '—'}</span></td>
+            <td style="color:var(--text-muted)">${s.ended_at ? new Date(s.ended_at).toLocaleDateString() : '—'}</td>
+            <td style="display:flex;gap:6px;flex-wrap:wrap">
+                <a href="${analysisUrl}" class="t-btn t-btn-outline" style="padding:4px 10px;font-size:12px" title="Analysis">
+                    <i class="fas fa-chart-line"></i>
+                </a>
+                <button onclick="downloadCSV(${s.id},'${s.session_code}')"
+                    class="t-btn t-btn-outline" style="padding:4px 10px;font-size:12px" title="Download CSV">
+                    <i class="fas fa-download"></i>
+                </button>
+                ${!sum.engineer_signed_by
+                    ? `<button class="t-btn t-btn-outline" style="padding:4px 10px;font-size:12px" onclick="openSignModal(${s.id})" title="Sign"><i class="fas fa-signature"></i></button>`
+                    : `<span style="font-size:11px;color:var(--success);align-self:center"><i class="fas fa-check-circle"></i> ${sum.engineer_signed_by}</span>`}
+            </td>
+        </tr>`;
+    }).join('');
+}
+
+function filterLocal() {
+    const q = document.getElementById('searchInput').value.toLowerCase();
+    if (!q) { renderTable(allRows); return; }
+    renderTable(allRows.filter(s =>
+        (s.valve_id||'').toLowerCase().includes(q) ||
+        s.operator_name.toLowerCase().includes(q) ||
+        s.session_code.toLowerCase().includes(q)
+    ));
+}
+
+function renderPagination(pages, current) {
+    const div = document.getElementById('pagination');
+    if (pages <= 1) { div.innerHTML = ''; return; }
+    div.innerHTML = Array.from({length: pages}, (_,i) => i+1).map(p =>
+        `<button class="t-btn t-btn-outline" style="padding:6px 12px;${p===current?'background:var(--accent);color:#000;':''}"
+            onclick="loadResults('${currentFilter}',${p})">${p}</button>`
+    ).join('');
+}
+
+// ── CSV Download with auth header ──────────────────────────
+async function downloadCSV(sessionId, code) {
+    try {
+        const res = await apiFetch(`/api/tests/sessions/${sessionId}/export/csv`);
+        if (!res.ok) { alert('Export failed: ' + res.status); return; }
+        const blob  = await res.blob();
+        const url   = URL.createObjectURL(blob);
+        const a     = document.createElement('a');
+        a.href      = url;
+        a.download  = `Testiny_${code}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    } catch(e) { alert('Download error: ' + e.message); }
+}
+
+// ── Charts ─────────────────────────────────────────────────
+async function loadCharts() {
+    try {
+        const pf = await (await apiFetch('/api/tests/analysis/pass-fail')).json();
+        new ApexCharts(document.getElementById('donutChart'), {
+            series: [pf.passed||0, pf.failed||0, pf.inconclusive||0],
+            labels: ['Passed','Failed','Inconclusive'],
+            colors: ['#00e676','#ff1744','#ffab00'],
+            chart:  { type:'donut', height:240, background:'transparent' },
+            plotOptions: { pie:{ donut:{ size:'65%', labels:{ show:true,
+                total:{ show:true, label:'Total', color:'#6b7fa3' } } } } },
+            legend: { labels:{ colors:'#e8f0fe' } },
+            theme:  { mode:'dark' }
+        }).render();
+    } catch(e) { document.getElementById('donutChart').innerHTML = '<p style="color:var(--text-muted);padding:20px;text-align:center">No data yet</p>'; }
+
+    try {
+        const tr = await (await apiFetch('/api/tests/analysis/trends')).json();
+        new ApexCharts(document.getElementById('trendChart'), {
+            series: [
+                { name:'Passed', data: tr.trends.map(t=>t.passed) },
+                { name:'Failed', data: tr.trends.map(t=>t.failed) },
+            ],
+            colors: ['#00e676','#ff1744'],
+            chart:  { type:'bar', height:240, background:'transparent', toolbar:{show:false} },
+            xaxis:  { categories: tr.trends.map(t=>t.month), labels:{ style:{colors:'#6b7fa3'} } },
+            yaxis:  { labels:{ style:{colors:'#6b7fa3'} } },
+            grid:   { borderColor:'#1e2d45' },
+            plotOptions: { bar:{ borderRadius:4 } },
+            theme:  { mode:'dark' }
+        }).render();
+    } catch(e) { document.getElementById('trendChart').innerHTML = '<p style="color:var(--text-muted);padding:20px;text-align:center">No data yet</p>'; }
+}
+
+// ── Sign modal ─────────────────────────────────────────────
+function openSignModal(id) {
+    signingSessionId = id;
+    document.getElementById('signModal').style.display = 'grid';
+}
+function closeSignModal() {
+    document.getElementById('signModal').style.display = 'none';
+    signingSessionId = null;
+}
 async function submitSign() {
     const name = document.getElementById('signName').value.trim();
-    if (!name) return alert('Enter engineer name');
-    await apiFetch(`/api/tests/results/${signingSessionId}/sign`, { method:'PUT', body: JSON.stringify({engineer_name:name}) });
+    if (!name) { alert('Enter engineer name'); return; }
+    await apiFetch(`/api/tests/results/${signingSessionId}/sign`,
+        { method:'PUT', body: JSON.stringify({engineer_name:name}) });
     closeSignModal();
     loadResults(currentFilter, currentPage);
 }
 
 loadResults();
+loadCharts();
 </script>
 {% endblock %}
