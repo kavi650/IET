@@ -137,19 +137,51 @@
             </div>
         </div>
         <div class="t-card">
-            <div class="t-card-title"><i class="fas fa-sliders"></i> Machine Limits</div>
-            <div id="limitsDisplay" style="font-size:13px;line-height:2;color:var(--text-muted)">Loading…</div>
+            <div class="t-card-title" style="display:flex;align-items:center;justify-content:space-between">
+                <span><i class="fas fa-sliders"></i> Machine Limits</span>
+                <button id="btnSaveLimits" onclick="saveLimits()"
+                    style="background:#0066ff;color:#fff;border:none;border-radius:8px;padding:5px 14px;font-size:12px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;display:inline-flex;align-items:center;gap:5px">
+                    <i class="fas fa-save"></i> Save
+                </button>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:4px">
+                <div class="t-form-group">
+                    <label style="font-size:11px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:1px">Max Pressure (bar)</label>
+                    <input type="number" id="limMaxPressure" placeholder="250" style="width:100%;background:#0a1628;border:1.5px solid rgba(255,255,255,.1);border-radius:8px;padding:8px 12px;color:#e8f0fe;font-size:13px;font-family:'JetBrains Mono',monospace">
+                </div>
+                <div class="t-form-group">
+                    <label style="font-size:11px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:1px">Max Temperature (°C)</label>
+                    <input type="number" id="limMaxTemp" placeholder="80" style="width:100%;background:#0a1628;border:1.5px solid rgba(255,255,255,.1);border-radius:8px;padding:8px 12px;color:#e8f0fe;font-size:13px;font-family:'JetBrains Mono',monospace">
+                </div>
+                <div class="t-form-group">
+                    <label style="font-size:11px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:1px">Max Leakage (mL/min)</label>
+                    <input type="number" id="limMaxLeakage" placeholder="5" style="width:100%;background:#0a1628;border:1.5px solid rgba(255,255,255,.1);border-radius:8px;padding:8px 12px;color:#e8f0fe;font-size:13px;font-family:'JetBrains Mono',monospace">
+                </div>
+                <div class="t-form-group">
+                    <label style="font-size:11px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:1px">Warning at (% of max)</label>
+                    <input type="number" id="limWarnPct" placeholder="85" min="1" max="99" style="width:100%;background:#0a1628;border:1.5px solid rgba(255,255,255,.1);border-radius:8px;padding:8px 12px;color:#e8f0fe;font-size:13px;font-family:'JetBrains Mono',monospace">
+                </div>
+                <div class="t-form-group">
+                    <label style="font-size:11px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:1px">Default Duration (sec)</label>
+                    <input type="number" id="limDuration" placeholder="300" style="width:100%;background:#0a1628;border:1.5px solid rgba(255,255,255,.1);border-radius:8px;padding:8px 12px;color:#e8f0fe;font-size:13px;font-family:'JetBrains Mono',monospace">
+                </div>
+                <div class="t-form-group">
+                    <label style="font-size:11px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:1px">Warn Temp (°C)</label>
+                    <input type="number" id="limWarnTemp" placeholder="65" style="width:100%;background:#0a1628;border:1.5px solid rgba(255,255,255,.1);border-radius:8px;padding:8px 12px;color:#e8f0fe;font-size:13px;font-family:'JetBrains Mono',monospace">
+                </div>
+            </div>
+            <div id="limitsSaveMsg" style="display:none;margin-top:8px;font-size:12px;color:#00e676"><i class="fas fa-check-circle"></i> Saved!</div>
         </div>
     </div>
 
-    <!-- Running Tests (inline below the form) -->
-    <div id="runningSessionsCard" class="t-card" style="margin-top:20px;display:none">
-        <div class="t-card-title" style="display:flex;align-items:center;justify-content:space-between">
-            <span><i class="fas fa-circle-dot" style="color:#00e676;animation:pulse-dot 1.2s infinite;margin-right:8px"></i>Running Tests</span>
-            <span id="runningCount" style="font-size:12px;color:rgba(255,255,255,.4)"></span>
-        </div>
-        <div id="runningSessionsList"></div>
+    <!-- Running Tests — always visible above setup (outside setup panel) -->
+</div>
+<div id="runningSessionsCard" class="t-card" style="margin-bottom:20px;display:none">
+    <div class="t-card-title" style="display:flex;align-items:center;justify-content:space-between">
+        <span><i class="fas fa-circle-dot" style="color:#00e676;animation:pulse-dot 1.2s infinite;margin-right:8px"></i>Running Tests</span>
+        <span id="runningCount" style="font-size:12px;color:rgba(255,255,255,.4)"></span>
     </div>
+    <div id="runningSessionsList"></div>
 </div>
 
 <!-- ACTIVE PANEL -->
@@ -477,7 +509,7 @@
 {% block scripts %}
 <script>
 let ACTIVE_SESSION = null, SOCKET = null, timerInterval = null, timerSec = 0;
-const MAX_P = 250, MAX_T = 80, MAX_F = 200, MAX_L = 5;
+let MAX_P = 250, MAX_T = 80, MAX_F = 200, MAX_L = 5;  // updated from settings
 const ARC_FULL = 288; // full gauge arc (circle r=54 * 2π * 85%)
 
 // Chart instances
@@ -993,8 +1025,75 @@ async function stopRunningSession(id, btn) {
     }
 }
 
+// ── Machine Limits: load & save ─────────────────────────────
+async function loadLimits() {
+    try {
+        const res = await apiFetch('/api/tests/settings');
+        if (!res.ok) return;
+        const s = await res.json();
+
+        // Populate inputs
+        const set = (id, val, fallback) => {
+            const el = document.getElementById(id);
+            if (el) el.value = (val != null && val !== undefined) ? val : fallback;
+        };
+        set('limMaxPressure', s.max_pressure_bar,      250);
+        set('limMaxTemp',     s.max_temp_c,             80);
+        set('limMaxLeakage',  s.max_leakage_ml_min,     5);
+        set('limWarnPct',     s.pressure_warning_pct,   85);
+        set('limDuration',    s.default_duration_sec,   300);
+        set('limWarnTemp',    s.temp_warning_c,          65);
+
+        // Update global gauge scales from settings
+        if (s.max_pressure_bar)  MAX_P = +s.max_pressure_bar;
+        if (s.max_temp_c)        MAX_T = +s.max_temp_c;
+        if (s.max_leakage_ml_min) MAX_L = +s.max_leakage_ml_min;
+
+    } catch(e) { /* keep defaults on error */ }
+}
+
+async function saveLimits() {
+    const btn = document.getElementById('btnSaveLimits');
+    const msg = document.getElementById('limitsSaveMsg');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+    const val = id => { const v = document.getElementById(id)?.value; return v !== '' && v != null ? +v : null; };
+
+    const payload = {
+        max_pressure_bar:      val('limMaxPressure'),
+        max_temp_c:            val('limMaxTemp'),
+        max_leakage_ml_min:    val('limMaxLeakage'),
+        pressure_warning_pct:  val('limWarnPct'),
+        default_duration_sec:  val('limDuration'),
+        temp_warning_c:        val('limWarnTemp'),
+    };
+
+    try {
+        const res = await apiFetch('/api/tests/settings', {
+            method: 'PUT',
+            body: JSON.stringify(payload)
+        });
+        if (!res.ok) throw new Error('Save failed');
+
+        // Update gauge scales immediately
+        if (payload.max_pressure_bar)  MAX_P = payload.max_pressure_bar;
+        if (payload.max_temp_c)        MAX_T = payload.max_temp_c;
+        if (payload.max_leakage_ml_min) MAX_L = payload.max_leakage_ml_min;
+
+        msg.style.display = '';
+        setTimeout(() => { msg.style.display = 'none'; }, 2500);
+    } catch(e) {
+        alert('Could not save settings: ' + e.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-save"></i> Save';
+    }
+}
+
 loadLimits();
 tryRestoreSession();
+
 loadRunningSessions();
 _runningRefresh = setInterval(loadRunningSessions, 10000);
 
