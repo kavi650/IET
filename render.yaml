@@ -1,0 +1,57 @@
+services:
+  # ── Main Web Application ─────────────────────────────────────────
+  - type: web
+    name: teslead-main
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --workers 2 --threads 2 --timeout 120
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: teslead-db
+          property: connectionString
+      - key: FLASK_DEBUG
+        value: "false"
+      - key: ADMIN_USERNAME
+        sync: false       # Set manually in Render dashboard
+      - key: ADMIN_PASSWORD
+        sync: false       # Set manually in Render dashboard
+      - key: OLLAMA_BASE_URL
+        value: ""         # Leave blank — Ollama not available on Render by default
+      - key: OLLAMA_MODEL
+        value: "llama3"
+      - key: PYTHON_VERSION
+        value: "3.11.9"
+
+  # ── Testing App ───────────────────────────────────────────────────
+  - type: web
+    name: teslead-testing
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn testing_wsgi:app --worker-class gthread --workers 1 --threads 4 --timeout 120
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: teslead-db
+          property: connectionString
+      - key: FLASK_DEBUG
+        value: "false"
+      - key: MAIN_APP_URL
+        sync: false       # Set to: https://teslead-main.onrender.com (your main app URL)
+      - key: OLLAMA_BASE_URL
+        value: ""
+      - key: OLLAMA_MODEL
+        value: "llama3"
+      - key: PYTHON_VERSION
+        value: "3.11.9"
+
+# ── PostgreSQL Database ──────────────────────────────────────────
+databases:
+  - name: teslead-db
+    databaseName: teslead_db
+    user: teslead_user
+    plan: free
