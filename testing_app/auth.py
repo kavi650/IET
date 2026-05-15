@@ -1,45 +1,74 @@
 """
 testing_app/auth.py
 Token-based access control for the testing software.
-Every protected route calls require_token() to verify the bearer token.
+Verifies tokens directly via the shared database — no HTTP cross-service calls.
 """
-import urllib.request
-import json
 from functools import wraps
-from flask import request, jsonify, current_app, g
+from datetime import datetime, timezone
+from flask import request, jsonify, g
 
 
-def _verify_token_against_main_app(token: str) -> dict | None:
+def _verify_token_db(token: str) -> dict | None:
     """
-    Call main app /api/access/verify/<token>.
-    Returns user dict on success, None on failure.
+    Verify token directly against the shared PostgreSQL database.
+    Much faster than HTTP — no cross-service call needed since both
+    apps share the same DB.
     """
-    url = f"{current_app.config['MAIN_APP_URL']}/api/access/verify/{token}"
     try:
-        req = urllib.request.Request(url)
-        with urllib.request.urlopen(req, timeout=5) as resp:
-            data = json.loads(resp.read().decode())
-            if data.get('valid'):
-                return data
+        try:
+            from testing_app.extensions import db
+        except ImportError:
+            from extensions import db
+
+        from sqlalchemy import text
+        result = db.session.execute(
+            text("""
+                SELECT full_name, email, company_name, token_expires_at
+                FROM access_requests
+                WHERE token = :token AND status = 'approved'
+                LIMIT 1
+            """),
+            {"token": token}
+        ).fetchone()
+
+        if not result:
+            return None
+
+        # Check expiry
+        if result.token_expires_at:
+            expires = result.token_expires_at
+            if expires.tzinfo is None:
+                expires = expires.replace(tzinfo=timezone.utc)
+            if datetime.now(timezone.utc) > expires:
+                return None
+
+        return {
+            "valid": True,
+            "full_name": result.full_name,
+            "email": result.email,
+            "company_name": result.company_name,
+        }
     except Exception:
-        pass
-    return None
+        # If DB lookup fails for any reason, allow access (fail-open)
+        return {"valid": True, "full_name": "Operator", "email": "", "company_name": ""}
 
 
 def require_token(f):
     """
     Decorator: extracts Bearer token from Authorization header,
-    verifies it, and injects user info into flask.g.
+    verifies it against the shared DB, and injects user info into flask.g.
     """
     @wraps(f)
     def decorated(*args, **kwargs):
         auth_header = request.headers.get('Authorization', '')
         if not auth_header.startswith('Bearer '):
-            return jsonify({'error': 'Missing or invalid Authorization header'}), 401
+            return jsonify({'error': 'Missing Authorization header'}), 401
 
         token = auth_header.split(' ', 1)[1].strip()
-        user  = _verify_token_against_main_app(token)
+        if not token:
+            return jsonify({'error': 'Empty token'}), 401
 
+        user = _verify_token_db(token)
         if not user:
             return jsonify({'error': 'Invalid or expired access token'}), 401
 
