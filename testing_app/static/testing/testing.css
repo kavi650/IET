@@ -742,21 +742,104 @@ body {
     border-radius: 3px;
 }
 
-/* ── Responsive ───────────────────────────────────────────── */
+/* ══════════════════════════════════════════════════════════════
+   RESPONSIVE — Testing App
+   Breakpoints: 900px (tablet), 600px (mobile), 380px (small)
+══════════════════════════════════════════════════════════════ */
+
+/* ── Sidebar drawer (tablet + mobile) ────────────────────── */
 @media (max-width: 900px) {
     .t-sidebar {
         position: fixed;
-        z-index: 100;
+        z-index: 200;
         height: 100vh;
         transform: translateX(-100%);
+        transition: transform .25s ease, width .25s ease;
+        box-shadow: 4px 0 24px rgba(0,0,0,.4);
     }
+    .t-sidebar.open { transform: translateX(0); }
 
-    .t-sidebar.open {
-        transform: translateX(0);
+    /* Backdrop overlay */
+    .t-sidebar-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,.55);
+        z-index: 199;
+        backdrop-filter: blur(2px);
     }
+    .t-sidebar-overlay.visible { display: block; }
 
-    .t-grid-2,
-    .t-grid-3 {
-        grid-template-columns: 1fr;
-    }
+    /* Main takes full width */
+    .t-main { width: 100%; }
+
+    /* Grid collapses */
+    .t-grid-2, .t-grid-3 { grid-template-columns: 1fr; }
+
+    /* KPI 2-up on tablet */
+    .t-kpi-grid { grid-template-columns: repeat(2, 1fr); }
+
+    /* Gauge 2-up on tablet */
+    .t-gauge-grid { grid-template-columns: repeat(2, 1fr); }
+
+    /* Content padding */
+    .t-content { padding: 16px; }
+
+    /* Topbar compact */
+    .t-topbar { padding: 0 14px; }
+}
+
+/* ── Mobile (≤ 600px) ─────────────────────────────────────── */
+@media (max-width: 600px) {
+    /* KPI & gauge: 1 column */
+    .t-kpi-grid  { grid-template-columns: 1fr 1fr; gap: 10px; }
+    .t-gauge-grid{ grid-template-columns: 1fr 1fr; gap: 10px; }
+
+    /* KPI value smaller on mobile */
+    .t-kpi-value { font-size: 24px; }
+    .t-gauge-value { font-size: 28px; }
+
+    /* Topbar: hide clock, shrink */
+    .t-time { display: none; }
+    .t-operator-badge { font-size: 11px; padding: 3px 8px; }
+    .t-page-title { font-size: 13px; }
+
+    /* Theme button: icon only */
+    #themeLabel { display: none; }
+
+    /* Tables: force horizontal scroll */
+    .t-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .t-table { min-width: 560px; }
+
+    /* Form rows: single column */
+    .t-form-row { grid-template-columns: 1fr; }
+
+    /* Buttons full-width in forms */
+    .t-form-group .t-btn { width: 100%; justify-content: center; }
+
+    /* Cards: tighter */
+    .t-card { padding: 14px; }
+    .t-card-title { font-size: 11px; }
+
+    /* Charts */
+    .t-chart { min-height: 220px; }
+
+    /* Content padding */
+    .t-content { padding: 12px; }
+
+    /* Topbar height */
+    .t-topbar { height: 50px; }
+}
+
+/* ── Small phones (≤ 380px) ───────────────────────────────── */
+@media (max-width: 380px) {
+    .t-kpi-grid  { grid-template-columns: 1fr; }
+    .t-gauge-grid{ grid-template-columns: 1fr; }
+    .t-kpi-value { font-size: 20px; }
+}
+
+/* ── Safe area (iPhone notch / home indicator) ────────────── */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+    .t-sidebar { padding-bottom: env(safe-area-inset-bottom); }
+    .t-content  { padding-bottom: calc(16px + env(safe-area-inset-bottom)); }
 }

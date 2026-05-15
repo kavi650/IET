@@ -369,3 +369,113 @@
     .form-row   { grid-template-columns: 1fr; }
     .reports-grid { grid-template-columns: 1fr; }
 }
+
+/* ══════════════════════════════════════════════════════════════
+   MOBILE — Admin Panel
+   Breakpoints: 900px (tablet), 600px (phone), 380px (small)
+══════════════════════════════════════════════════════════════ */
+
+@media (max-width: 900px) {
+    /* Sidebar: slide-out drawer */
+    .admin-layout { flex-direction: column; }
+
+    .admin-sidebar {
+        position: fixed;
+        top: 0; left: 0;
+        height: 100vh;
+        width: 260px !important;
+        z-index: 500;
+        transform: translateX(-100%);
+        transition: transform .25s ease;
+        box-shadow: 4px 0 24px rgba(0,0,0,.25);
+        overflow-y: auto;
+    }
+    .admin-sidebar.mobile-open { transform: translateX(0); }
+
+    /* Overlay */
+    .admin-mobile-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,.5);
+        z-index: 499;
+        backdrop-filter: blur(2px);
+    }
+    .admin-mobile-overlay.visible { display: block; }
+
+    /* Hamburger: show on mobile */
+    .admin-mobile-ham {
+        display: flex !important;
+        align-items: center;
+        gap: 8px;
+        background: none;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 6px 10px;
+        cursor: pointer;
+        font-size: 15px;
+        color: var(--text-primary);
+    }
+
+    .admin-content { width: 100% !important; padding: 14px !important; }
+
+    /* Dash cards 2-col */
+    .dash-cards { grid-template-columns: 1fr 1fr; gap: .8rem; }
+    .dash-card__value { font-size: 1.4rem; }
+
+    /* Tables */
+    .admin-table-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .admin-table { min-width: 560px; }
+
+    /* Reports grid */
+    .reports-grid { grid-template-columns: 1fr; }
+
+    /* Form rows */
+    .form-row { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 600px) {
+    /* Dash cards 1-col */
+    .dash-cards { grid-template-columns: 1fr; gap: .7rem; }
+
+    /* Modal: full screen */
+    .modal {
+        width: 100% !important;
+        max-width: 100% !important;
+        height: 100vh;
+        margin: 0 !important;
+        border-radius: 0 !important;
+        display: flex;
+        flex-direction: column;
+    }
+    .modal-overlay { align-items: flex-start; }
+    .modal-body { flex: 1; overflow-y: auto; }
+
+    /* Admin header: stack */
+    .admin-header { flex-direction: column; align-items: flex-start; gap: 10px; }
+    .admin-header > div,
+    .admin-header > button,
+    .admin-header > a { width: 100%; }
+
+    /* Toolbar: stack */
+    .admin-toolbar { flex-direction: column; }
+    .search-input, .filter-select { width: 100%; }
+
+    /* Navbar compact */
+    .navbar .container { padding: 0 12px; }
+
+    /* Pagination: wrap */
+    .pagination { gap: .3rem; }
+    .page-btn { padding: .3rem .6rem; font-size: .8rem; }
+}
+
+@media (max-width: 380px) {
+    .admin-sidebar { width: 85vw !important; }
+}
+
+/* ── Safe area ────────────────────────────────────────────── */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+    .admin-sidebar { padding-bottom: env(safe-area-inset-bottom); }
+    .admin-content { padding-bottom: calc(14px + env(safe-area-inset-bottom)) !important; }
+}
+

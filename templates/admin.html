@@ -66,11 +66,21 @@
             </a>
 
             <div class="nav-actions">
+                <!-- Mobile hamburger (hidden on desktop via CSS) -->
+                <button class="admin-mobile-ham" id="adminHam"
+                    onclick="toggleAdminSidebar()"
+                    style="display:none"
+                    aria-label="Open menu">
+                    <i class="fas fa-bars"></i>
+                </button>
                 <button class="theme-toggle" id="themeToggle"><i class="fas fa-moon"></i></button>
                 <button class="hamburger" id="hamburger"><span></span><span></span><span></span></button>
             </div>
         </div>
     </nav>
+
+    <!-- Mobile sidebar overlay -->
+    <div class="admin-mobile-overlay" id="adminOverlay" onclick="closeAdminSidebar()"></div>
 
     <!-- ADMIN LAYOUT -->
     <div class="admin-layout">
@@ -296,6 +306,9 @@
             <div class="admin-section" id="section-sales" style="display:none;">
                 <div class="admin-header">
                     <h2><i class="fas fa-handshake"></i> Sales — Enquiry Pipeline</h2>
+                    <button class="btn btn-primary" id="addEnquiryBtn" onclick="openEnquiryModal()">
+                        <i class="fas fa-plus"></i> Add Enquiry
+                    </button>
                 </div>
                 <div class="admin-toolbar">
                     <input type="text" id="salesSearch" placeholder="Search name / company…" class="search-input">
@@ -387,8 +400,14 @@
             <div class="admin-section" id="section-assembly" style="display:none;">
                 <div class="admin-header">
                     <h2><i class="fas fa-screwdriver-wrench"></i> Assembly Checklists</h2>
-                    <button class="btn btn-outline-dark" id="downloadAsmPdfBtn" onclick="downloadAssemblyPDF()"><i
-                            class="fas fa-file-pdf"></i> Download PDF</button>
+                    <div style="display:flex;gap:.5rem">
+                        <button class="btn btn-outline-dark" id="downloadAsmPdfBtn" onclick="downloadAssemblyPDF()">
+                            <i class="fas fa-file-pdf"></i> Download PDF
+                        </button>
+                        <button class="btn btn-primary" id="addAsmBtn" onclick="openAssemblyModal()">
+                            <i class="fas fa-plus"></i> Add Checklist
+                        </button>
+                    </div>
                 </div>
                 <div class="admin-table-wrapper">
                     <table class="admin-table">
@@ -655,11 +674,12 @@
                                 <th>Result</th>
                                 <th>Duration</th>
                                 <th>Date</th>
+                                <th>Report</th>
                             </tr>
                         </thead>
                         <tbody id="testSessionsTbody">
                             <tr>
-                                <td colspan="8" class="text-center">
+                                <td colspan="9" class="text-center">
                                     <div class="spinner" style="margin:0 auto"></div>
                                 </td>
                             </tr>
@@ -978,6 +998,31 @@
     <script src="/static/js/admin_dept2.js"></script>
     <script src="/static/js/pdf_export.js"></script>
     <script src="/static/js/admin_v3.js"></script>
+
+    <script>
+    /* ── Mobile admin sidebar ── */
+    function toggleAdminSidebar() {
+        const sb  = document.querySelector('.admin-sidebar');
+        const ov  = document.getElementById('adminOverlay');
+        if (!sb) return;
+        sb.classList.toggle('mobile-open');
+        ov.classList.toggle('visible');
+    }
+    function closeAdminSidebar() {
+        document.querySelector('.admin-sidebar')?.classList.remove('mobile-open');
+        document.getElementById('adminOverlay')?.classList.remove('visible');
+    }
+    // Close on nav link click (mobile)
+    document.querySelectorAll('.acc-body a').forEach(a =>
+        a.addEventListener('click', () => {
+            if (window.innerWidth <= 900) closeAdminSidebar();
+        })
+    );
+    // Resize cleanup
+    window.addEventListener('resize', () => {
+        if (window.innerWidth > 900) closeAdminSidebar();
+    });
+    </script>
 
     <script>
     /* ── Accordion nav ── */

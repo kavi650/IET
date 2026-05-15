@@ -20,6 +20,9 @@
 
 <body>
 
+    <!-- Mobile sidebar overlay -->
+    <div class="t-sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+
     <!-- SIDEBAR -->
     <aside class="t-sidebar" id="sidebar">
         <div class="t-sidebar-brand">
@@ -82,8 +85,8 @@
     <main class="t-main">
         <header class="t-topbar">
             <div class="t-topbar-left">
-                <button class="t-menu-toggle"
-                    onclick="document.getElementById('sidebar').classList.toggle('collapsed')">
+                <button class="t-menu-toggle" id="menuToggle"
+                    onclick="toggleSidebar()">
                     <i class="fas fa-bars"></i>
                 </button>
                 <div class="t-page-title">{% block page_title %}Dashboard{% endblock %}</div>
@@ -155,7 +158,31 @@
                 new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
         }, 1000);
 
-        // Auto-read token from URL ?token= param (passed from public testing_access page)
+        // ── Sidebar toggle (desktop: collapse / mobile: drawer) ──
+        function isMobile() { return window.innerWidth <= 900; }
+
+        function toggleSidebar() {
+            const sidebar  = document.getElementById('sidebar');
+            const overlay  = document.getElementById('sidebarOverlay');
+            if (isMobile()) {
+                sidebar.classList.toggle('open');
+                overlay.classList.toggle('visible');
+            } else {
+                sidebar.classList.toggle('collapsed');
+            }
+        }
+
+        function closeSidebar() {
+            document.getElementById('sidebar').classList.remove('open');
+            document.getElementById('sidebarOverlay').classList.remove('visible');
+        }
+
+        // Close drawer on resize back to desktop
+        window.addEventListener('resize', () => {
+            if (window.innerWidth > 900) {
+                closeSidebar();
+            }
+        });
         (function () {
             const params = new URLSearchParams(window.location.search);
             const t = params.get('token');

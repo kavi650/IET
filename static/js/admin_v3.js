@@ -257,10 +257,319 @@ async function loadTestSessions(page = 1) {
                 <td>${s.result ? statusBadge(s.result) : '—'}</td>
                 <td>${fmtDuration(s.duration_seconds)}</td>
                 <td style="font-size:12px">${fmtDate(s.created_at)}</td>
+                <td>
+                    <button class="btn btn-xs btn-outline-dark"
+                        title="Download PDF Report"
+                        onclick="generateTestSessionPDF(${s.id},'${s.session_code}',this)"
+                        style="color:#f59e0b;border-color:#f59e0b">
+                        <i class="fas fa-file-pdf"></i> PDF
+                    </button>
+                </td>
             </tr>`).join('')
-        : '<tr><td colspan="8" class="text-center">No sessions found</td></tr>';
+        : '<tr><td colspan="9" class="text-center">No sessions found</td></tr>';
 
     renderPagination('testSessionsPagination', data.pages, page, loadTestSessions);
+}
+
+/* ─ Test Session PDF Report (client-side via jsPDF) ────────── */
+async function generateTestSessionPDF(sessionId, code, btn) {
+    const orig = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    try {
+        // Fetch session data from the testing sub-app
+        const sessRes = await fetch(`/testing/api/tests/sessions/${sessionId}`);
+        const readRes = await fetch(`/testing/api/tests/sessions/${sessionId}/readings?limit=1000`);
+        if (!sessRes.ok) { alert('Could not load session data (check auth).'); return; }
+        const sess     = await sessRes.json();
+        const readData = readRes.ok ? await readRes.json() : { readings: [] };
+        const readings = readData.readings || [];
+
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+        const W   = doc.internal.pageSize.getWidth();
+        const H   = doc.internal.pageSize.getHeight();
+
+        // Header
+        doc.setFillColor(10, 22, 40); doc.rect(0, 0, W, 32, 'F');
+        doc.setTextColor(0, 200, 255); doc.setFontSize(18); doc.setFont('helvetica','bold');
+        doc.text('TESTINY', 14, 13);
+        doc.setTextColor(200, 220, 255); doc.setFontSize(9); doc.setFont('helvetica','normal');
+        doc.text('Industrial Valve Testing — Admin Report', 14, 19);
+        doc.text(`Generated: ${new Date().toLocaleString()}`, W - 14, 27, { align: 'right' });
+
+        const result = (sess.result || 'unknown').toUpperCase();
+        const rColor = result === 'PASSED' ? [0,230,118] : result === 'FAILED' ? [255,23,68] : [255,171,0];
+        doc.setFillColor(...rColor);
+        doc.roundedRect(W - 42, 6, 30, 10, 3, 3, 'F');
+        doc.setTextColor(0,0,0); doc.setFontSize(9); doc.setFont('helvetica','bold');
+        doc.text(result, W - 27, 13, { align: 'center' });
+
+        let y = 40;
+        const fmt = v => (v == null || v === '') ? '—' : String(v);
+        const dur = sess.duration_seconds
+            ? `${Math.floor(sess.duration_seconds/60)}m ${sess.duration_seconds%60}s` : '—';
+
+        doc.setFontSize(11); doc.setFont('helvetica','bold'); doc.setTextColor(30,60,100);
+        doc.text('Session Information', 14, y); y += 6;
+        doc.autoTable({
+            startY: y, head: [],
+            body: [
+                ['Session Code', fmt(sess.session_code),    'Operator',   fmt(sess.operator_name)],
+                ['Valve ID',     fmt(sess.valve_id),        'Valve Type', fmt(sess.valve_type)],
+                ['Test Type',    fmt(sess.test_type),       'Medium',     fmt(sess.medium)],
+                ['Status',       fmt(sess.status),          'Result',     result],
+                ['Started',      sess.started_at ? new Date(sess.started_at).toLocaleString() : '—',
+                 'Ended',        sess.ended_at   ? new Date(sess.ended_at).toLocaleString()   : '—'],
+                ['Duration',     dur, 'Job #', fmt(sess.job_number)],
+            ],
+            columnStyles: {
+                0: { fontStyle:'bold', cellWidth:35, fillColor:[240,245,255], textColor:[30,60,120] },
+                1: { cellWidth:55 },
+                2: { fontStyle:'bold', cellWidth:35, fillColor:[240,245,255], textColor:[30,60,120] },
+                3: { cellWidth:55 },
+            },
+            styles: { fontSize:9, cellPadding:3, lineColor:[220,230,245], lineWidth:.3 },
+            theme: 'grid',
+        });
+        y = doc.lastAutoTable.finalY + 10;
+
+        if (readings.length) {
+            const vals = k => readings.map(r => parseFloat(r[k])).filter(v => !isNaN(v));
+            const stat = arr => arr.length
+                ? { min: Math.min(...arr).toFixed(2), max: Math.max(...arr).toFixed(2),
+                    avg: (arr.reduce((a,b) => a+b,0)/arr.length).toFixed(2) }
+                : { min:'—', max:'—', avg:'—' };
+
+            doc.setFontSize(11); doc.setFont('helvetica','bold'); doc.setTextColor(30,60,100);
+            doc.text('Measurement Summary', 14, y); y += 6;
+            doc.autoTable({
+                startY: y,
+                head:  [['Parameter','Unit','Min','Max','Average','Count']],
+                body:  [
+                    ['Pressure',    'bar',    ...Object.values(stat(vals('pressure_bar'))),   vals('pressure_bar').length],
+                    ['Temperature', '°C',     ...Object.values(stat(vals('temperature_c'))),  vals('temperature_c').length],
+                    ['Flow Rate',   'L/min',  ...Object.values(stat(vals('flow_rate_lpm'))),  vals('flow_rate_lpm').length],
+                    ['Leakage',     'mL/min', ...Object.values(stat(vals('leakage_ml_min'))), vals('leakage_ml_min').length],
+                ],
+                headStyles: { fillColor:[10,22,40], textColor:[0,200,255], fontSize:9 },
+                styles: { fontSize:9, cellPadding:3 },
+                alternateRowStyles: { fillColor:[245,248,255] },
+                theme: 'striped',
+            });
+            y = doc.lastAutoTable.finalY + 10;
+
+            doc.setFontSize(11); doc.setFont('helvetica','bold'); doc.setTextColor(30,60,100);
+            doc.text(`Sensor Readings (${Math.min(readings.length,200)} of ${readings.length})`, 14, y); y += 4;
+            doc.autoTable({
+                startY: y,
+                head: [['Time','Pressure (bar)','Temp (°C)','Flow (L/min)','Leakage (mL/min)','Alert']],
+                body: readings.slice(0,200).map(r => [
+                    r.recorded_at ? new Date(r.recorded_at).toLocaleTimeString() : '—',
+                    r.pressure_bar   != null ? Number(r.pressure_bar).toFixed(2)   : '—',
+                    r.temperature_c  != null ? Number(r.temperature_c).toFixed(2)  : '—',
+                    r.flow_rate_lpm  != null ? Number(r.flow_rate_lpm).toFixed(3)  : '—',
+                    r.leakage_ml_min != null ? Number(r.leakage_ml_min).toFixed(3) : '—',
+                    r.pressure_alert || 'ok',
+                ]),
+                headStyles: { fillColor:[10,22,40], textColor:[0,200,255], fontSize:8 },
+                styles: { fontSize:7.5, cellPadding:2 },
+                alternateRowStyles: { fillColor:[247,250,255] },
+                didParseCell: d => {
+                    if (d.section === 'body' && d.column.index === 5) {
+                        const v = d.cell.text[0];
+                        if (v === 'critical') { d.cell.styles.textColor=[200,0,0]; d.cell.styles.fontStyle='bold'; }
+                        else if (v === 'warning') d.cell.styles.textColor=[180,100,0];
+                        else d.cell.styles.textColor=[0,160,80];
+                    }
+                },
+                theme: 'striped',
+            });
+        }
+
+        // Footer on each page
+        const pages = doc.internal.getNumberOfPages();
+        for (let i = 1; i <= pages; i++) {
+            doc.setPage(i);
+            doc.setDrawColor(0,200,255); doc.setLineWidth(.5);
+            doc.line(14, H-12, W-14, H-12);
+            doc.setFontSize(8); doc.setTextColor(120,150,180); doc.setFont('helvetica','normal');
+            doc.text('Testiny — Admin Report — Confidential', 14, H-7);
+            doc.text(`Page ${i} of ${pages}`, W-14, H-7, { align:'right' });
+        }
+
+        doc.save(`Testiny_Admin_${code}.pdf`);
+    } catch (e) {
+        alert('PDF generation failed: ' + e.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = orig;
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   SALES — Add Enquiry Modal
+═══════════════════════════════════════════════════════════ */
+function openEnquiryModal() {
+    // Reuse the existing sales modal if present, otherwise open inline modal
+    const existingModal = document.getElementById('salesModal');
+    if (existingModal) {
+        existingModal.classList.add('open');
+        return;
+    }
+    // Fallback: inline form modal
+    let m = document.getElementById('_enquiryModal');
+    if (!m) {
+        m = document.createElement('div');
+        m.id = '_enquiryModal';
+        m.className = 'modal-overlay';
+        m.innerHTML = `
+        <div class="modal" style="max-width:500px">
+            <div class="modal-header">
+                <h3><i class="fas fa-handshake"></i> New Sales Enquiry</h3>
+                <button class="modal-close" onclick="document.getElementById('_enquiryModal').classList.remove('open')"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="form-row">
+                    <div class="form-group"><label>Contact Name *</label><input type="text" id="enqName" placeholder="Full name"></div>
+                    <div class="form-group"><label>Company</label><input type="text" id="enqCompany" placeholder="Company name"></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>Email</label><input type="email" id="enqEmail" placeholder="email@company.com"></div>
+                    <div class="form-group"><label>Phone</label><input type="tel" id="enqPhone" placeholder="+91 9876543210"></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>Product Interest</label><input type="text" id="enqProduct" placeholder="e.g., Ball Valve 2-inch"></div>
+                    <div class="form-group"><label>Est. Value (&#8377;)</label><input type="number" id="enqValue" placeholder="0" min="0"></div>
+                </div>
+                <div class="form-group"><label>Status</label>
+                    <select id="enqStatus">
+                        <option value="new">New</option>
+                        <option value="contacted">Contacted</option>
+                        <option value="quotation">Quotation Sent</option>
+                    </select>
+                </div>
+                <div class="form-group"><label>Notes</label><textarea id="enqNotes" rows="3" placeholder="Additional notes…"></textarea></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline-dark" onclick="document.getElementById('_enquiryModal').classList.remove('open')">Cancel</button>
+                <button class="btn btn-primary" onclick="submitEnquiry()"><i class="fas fa-save"></i> Save Enquiry</button>
+            </div>
+        </div>`;
+        document.body.appendChild(m);
+        m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); });
+    }
+    m.classList.add('open');
+}
+
+async function submitEnquiry() {
+    const name = document.getElementById('enqName')?.value.trim();
+    if (!name) { alert('Contact name is required'); return; }
+    const payload = {
+        contact_name:    name,
+        company_name:    document.getElementById('enqCompany')?.value.trim() || '',
+        email:           document.getElementById('enqEmail')?.value.trim() || '',
+        phone:           document.getElementById('enqPhone')?.value.trim() || '',
+        product_interest:document.getElementById('enqProduct')?.value.trim() || '',
+        estimated_value: parseFloat(document.getElementById('enqValue')?.value) || 0,
+        status:          document.getElementById('enqStatus')?.value || 'new',
+        notes:           document.getElementById('enqNotes')?.value.trim() || '',
+    };
+    try {
+        const res = await fetch('/api/admin/enquiries', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        if (res.ok) {
+            showToastV3('Enquiry saved!', 'success');
+            document.getElementById('_enquiryModal').classList.remove('open');
+            if (typeof loadSalesData === 'function') loadSalesData();
+        } else {
+            const d = await res.json();
+            alert('Error: ' + (d.error || res.status));
+        }
+    } catch(e) { alert('Request failed: ' + e.message); }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   ASSEMBLY — Add Checklist Modal
+═══════════════════════════════════════════════════════════ */
+function openAssemblyModal() {
+    const existingModal = document.getElementById('assemblyModal');
+    if (existingModal) {
+        // Reset for new entry
+        document.getElementById('asmId')?.removeAttribute('value');
+        const title = document.getElementById('assemblyModalTitle');
+        if (title) title.textContent = 'New Assembly Checklist';
+        existingModal.classList.add('open');
+        return;
+    }
+    // Fallback inline modal
+    let m = document.getElementById('_assemblyModal');
+    if (!m) {
+        m = document.createElement('div');
+        m.id = '_assemblyModal';
+        m.className = 'modal-overlay';
+        m.innerHTML = `
+        <div class="modal" style="max-width:500px">
+            <div class="modal-header">
+                <h3><i class="fas fa-screwdriver-wrench"></i> New Assembly Checklist</h3>
+                <button class="modal-close" onclick="document.getElementById('_assemblyModal').classList.remove('open')"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="form-row">
+                    <div class="form-group"><label>Order # *</label><input type="text" id="asmOrder" placeholder="e.g., ORD-2026-001"></div>
+                    <div class="form-group"><label>Assigned To</label><input type="text" id="asmAssigned" placeholder="Technician name"></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>Progress (0–100%)</label><input type="number" id="asmProgress" min="0" max="100" value="0"></div>
+                    <div class="form-group"><label>Status</label>
+                        <select id="asmStatus">
+                            <option value="pending">Pending</option>
+                            <option value="in_progress">In Progress</option>
+                            <option value="completed">Completed</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group"><label>Notes</label><textarea id="asmNotes" rows="3" placeholder="Assembly notes…"></textarea></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline-dark" onclick="document.getElementById('_assemblyModal').classList.remove('open')">Cancel</button>
+                <button class="btn btn-primary" onclick="submitAssembly()"><i class="fas fa-save"></i> Save</button>
+            </div>
+        </div>`;
+        document.body.appendChild(m);
+        m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); });
+    }
+    m.classList.add('open');
+}
+
+async function submitAssembly() {
+    const order = document.getElementById('asmOrder')?.value.trim();
+    if (!order) { alert('Order # is required'); return; }
+    const payload = {
+        order_number:  order,
+        assigned_to:   document.getElementById('asmAssigned')?.value.trim() || '',
+        progress:      parseInt(document.getElementById('asmProgress')?.value) || 0,
+        status:        document.getElementById('asmStatus')?.value || 'pending',
+        notes:         document.getElementById('asmNotes')?.value.trim() || '',
+    };
+    try {
+        const res = await fetch('/api/admin/assembly', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        if (res.ok) {
+            showToastV3('Assembly checklist saved!', 'success');
+            document.getElementById('_assemblyModal').classList.remove('open');
+            if (typeof loadAssemblyData === 'function') loadAssemblyData();
+        } else {
+            const d = await res.json();
+            alert('Error: ' + (d.error || res.status));
+        }
+    } catch(e) { alert('Request failed: ' + e.message); }
 }
 
 /* ═══════════════════════════════════════════════════════════
