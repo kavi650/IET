@@ -141,16 +141,15 @@
             <div id="limitsDisplay" style="font-size:13px;line-height:2;color:var(--text-muted)">Loading…</div>
         </div>
     </div>
-</div>
 
-<!-- RUNNING SESSIONS PANEL -->
-<div id="runningSessionsCard" class="t-card" style="margin-bottom:24px;display:none">
-    <div class="t-card-title" style="display:flex;align-items:center;justify-content:space-between">
-        <span><i class="fas fa-circle-dot" style="color:#00e676;animation:pulse-dot 1.2s infinite;margin-right:8px"></i>
-        Running Tests</span>
-        <span id="runningCount" style="font-size:12px;color:rgba(255,255,255,.4)"></span>
+    <!-- Running Tests (inline below the form) -->
+    <div id="runningSessionsCard" class="t-card" style="margin-top:20px;display:none">
+        <div class="t-card-title" style="display:flex;align-items:center;justify-content:space-between">
+            <span><i class="fas fa-circle-dot" style="color:#00e676;animation:pulse-dot 1.2s infinite;margin-right:8px"></i>Running Tests</span>
+            <span id="runningCount" style="font-size:12px;color:rgba(255,255,255,.4)"></span>
+        </div>
+        <div id="runningSessionsList"></div>
     </div>
-    <div id="runningSessionsList"></div>
 </div>
 
 <!-- ACTIVE PANEL -->
@@ -609,6 +608,7 @@ async function createSession() {
 
 function showActivePanel() {
     document.getElementById('setupPanel').style.display = 'none';
+    document.getElementById('runningSessionsCard').style.display = 'none'; // hide while active
     document.getElementById('activePanel').style.display = '';
     document.getElementById('sessionBannerText').textContent =
         `Session ${ACTIVE_SESSION.session_code} | ${ACTIVE_SESSION.valve_id || 'No Valve ID'} | ${ACTIVE_SESSION.test_type}`;
@@ -833,7 +833,10 @@ async function abortSession() {
     stopPolling();
     sessionStorage.removeItem('live_session_id');
     await apiFetch(`/api/tests/sessions/${ACTIVE_SESSION.id}/abort`, { method:'PUT' });
-    window.location.reload();
+    ACTIVE_SESSION = null;
+    document.getElementById('activePanel').style.display = 'none';
+    document.getElementById('setupPanel').style.display = '';
+    loadRunningSessions();
 }
 
 // Auto-restore session on page load / refresh

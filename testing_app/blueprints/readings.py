@@ -27,7 +27,20 @@ def simulate_reading(session_id):
     if session.status != 'running':
         return jsonify({'error': 'Session is not running'}), 409
 
-    settings = TestSettings.get()
+    try:
+        settings = TestSettings.get()
+        p_warn = float(settings.max_pressure_bar or 250) * (settings.pressure_warning_pct or 85) / 100
+        p_crit = float(settings.max_pressure_bar or 250)
+        t_warn = float(settings.temp_warning_c or 65)
+        t_crit = float(settings.max_temp_c or 80)
+        l_warn = float(settings.leakage_warning_ml or 2)
+        l_crit = float(settings.max_leakage_ml_min or 5)
+    except Exception:
+        db.session.rollback()
+        p_warn, p_crit = 212.5, 250.0
+        t_warn, t_crit = 65.0,  80.0
+        l_warn, l_crit = 2.0,   5.0
+
     target_p = float(session.target_pressure or 150)
 
     # Get last reading for continuity
@@ -75,13 +88,7 @@ def simulate_reading(session_id):
     else:
         leakage = round(random.uniform(0.0, 0.08), 3)
 
-    # ── Alert thresholds from settings ──
-    p_warn = float(settings.max_pressure_bar or 250) * (settings.pressure_warning_pct or 85) / 100
-    p_crit = float(settings.max_pressure_bar or 250)
-    t_warn = float(settings.temp_warning_c or 65)
-    t_crit = float(settings.max_temp_c or 80)
-    l_warn = float(settings.leakage_warning_ml or 2)
-    l_crit = float(settings.max_leakage_ml_min or 5)
+
 
     reading = TestReading(
         session_id     = session_id,
