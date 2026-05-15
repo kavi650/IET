@@ -1,7 +1,11 @@
 """testing_app/blueprints/logs.py — Test logs with filters and pagination."""
 from flask import Blueprint, jsonify, request
-from testing_app.models import TestSession
-from testing_app.auth import require_token
+try:
+    from testing_app.models import TestSession
+    from testing_app.auth import require_token
+except ImportError:
+    from models import TestSession
+    from auth import require_token
 
 logs_bp = Blueprint('logs', __name__, url_prefix='/api/tests/logs')
 

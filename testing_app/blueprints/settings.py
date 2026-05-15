@@ -1,9 +1,14 @@
 """testing_app/blueprints/settings.py — Machine settings CRUD."""
 from datetime import datetime
 from flask import Blueprint, jsonify, request
-from testing_app.extensions import db
-from testing_app.models import TestSettings
-from testing_app.auth import require_token
+try:
+    from testing_app.extensions import db
+    from testing_app.models import TestSettings
+    from testing_app.auth import require_token
+except ImportError:
+    from extensions import db
+    from models import TestSettings
+    from auth import require_token
 
 settings_bp = Blueprint('settings', __name__, url_prefix='/api/tests/settings')
 

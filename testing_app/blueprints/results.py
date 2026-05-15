@@ -2,9 +2,14 @@
 import csv
 import io
 from flask import Blueprint, jsonify, request, Response
-from testing_app.extensions import db
-from testing_app.models import TestSession, TestResult, TestReading
-from testing_app.auth import require_token
+try:
+    from testing_app.extensions import db
+    from testing_app.models import TestSession, TestResult, TestReading
+    from testing_app.auth import require_token
+except ImportError:
+    from extensions import db
+    from models import TestSession, TestResult, TestReading
+    from auth import require_token
 
 results_bp = Blueprint('results', __name__, url_prefix='/api/tests')
 

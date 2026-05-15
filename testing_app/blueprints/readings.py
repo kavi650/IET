@@ -1,9 +1,14 @@
 """testing_app/blueprints/readings.py — Sensor reading ingestion API."""
 from datetime import datetime
 from flask import Blueprint, jsonify, request
-from testing_app.extensions import db
-from testing_app.models import TestSession, TestReading, TestSettings
-from testing_app.auth import require_token
+try:
+    from testing_app.extensions import db
+    from testing_app.models import TestSession, TestReading, TestSettings
+    from testing_app.auth import require_token
+except ImportError:
+    from extensions import db
+    from models import TestSession, TestReading, TestSettings
+    from auth import require_token
 
 readings_bp = Blueprint('readings', __name__, url_prefix='/api/tests')
 
@@ -63,11 +68,14 @@ def push_reading(session_id):
 
         # Emit via SocketIO for live dashboard
         try:
-            from testing_app.app import socketio
-            socketio.emit('new_reading', r_dict, room=f'session_{session_id}')
-            # Emit alert if critical
-            if 'critical' in [r_dict['pressure_alert'], r_dict['temp_alert'], r_dict['leakage_alert']]:
-                socketio.emit('critical_alert', r_dict, room=f'session_{session_id}')
+            try:
+                from testing_app.app import socketio
+            except ImportError:
+                from app import socketio
+            if socketio:
+                socketio.emit('new_reading', r_dict, room=f'session_{session_id}')
+                if 'critical' in [r_dict['pressure_alert'], r_dict['temp_alert'], r_dict['leakage_alert']]:
+                    socketio.emit('critical_alert', r_dict, room=f'session_{session_id}')
         except Exception:
             pass
 

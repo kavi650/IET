@@ -1,9 +1,14 @@
 """testing_app/blueprints/dashboard.py — Dashboard summary API."""
 from flask import Blueprint, jsonify
 from sqlalchemy import func
-from testing_app.extensions import db
-from testing_app.models import TestSession, TestReading, TestResult, TestSettings
-from testing_app.auth import require_token
+try:
+    from testing_app.extensions import db
+    from testing_app.models import TestSession, TestReading, TestResult, TestSettings
+    from testing_app.auth import require_token
+except ImportError:
+    from extensions import db
+    from models import TestSession, TestReading, TestResult, TestSettings
+    from auth import require_token
 from datetime import datetime, date
 
 dashboard_bp = Blueprint('dashboard', __name__, url_prefix='/api/tests/dashboard')

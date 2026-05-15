@@ -5,7 +5,11 @@ Re-uses the same db instance and maps to the same tables
 created by models_v3.py (no duplicate table definitions).
 """
 from datetime import datetime
-from testing_app.extensions import db
+try:
+    from testing_app.extensions import db
+except ImportError:
+    from extensions import db  # noqa: F401
+
 
 
 class TestSession(db.Model):

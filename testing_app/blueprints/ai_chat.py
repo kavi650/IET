@@ -7,7 +7,10 @@ Ollama AI chat endpoint for the testing software.
 import json
 import urllib.request
 from flask import Blueprint, jsonify, request, current_app
-from testing_app.auth import require_token
+try:
+    from testing_app.auth import require_token
+except ImportError:
+    from auth import require_token
 
 ai_chat_bp = Blueprint('ai_chat', __name__, url_prefix='/api/tests/ai')
 
@@ -66,8 +69,12 @@ def analyse_session(session_id):
     Auto-generates an AI analysis report for a completed test session.
     Saves the result to TestResult.ai_summary.
     """
-    from testing_app.extensions import db
-    from testing_app.models import TestSession, TestResult
+    try:
+        from testing_app.extensions import db
+        from testing_app.models import TestSession, TestResult
+    except ImportError:
+        from extensions import db
+        from models import TestSession, TestResult
 
     session = TestSession.query.get_or_404(session_id)
     result  = session.result_record

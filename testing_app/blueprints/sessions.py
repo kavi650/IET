@@ -2,9 +2,14 @@
 import uuid
 from datetime import datetime
 from flask import Blueprint, jsonify, request
-from testing_app.extensions import db
-from testing_app.models import TestSession, TestSettings
-from testing_app.auth import require_token, get_operator_name
+try:
+    from testing_app.extensions import db
+    from testing_app.models import TestSession, TestSettings
+    from testing_app.auth import require_token, get_operator_name
+except ImportError:
+    from extensions import db
+    from models import TestSession, TestSettings
+    from auth import require_token, get_operator_name
 
 sessions_bp = Blueprint('sessions', __name__, url_prefix='/api/tests/sessions')
 
@@ -177,8 +182,12 @@ def complete_session(session_id):
         db.session.commit()
         # Emit SocketIO event
         try:
-            from testing_app.app import socketio
-            socketio.emit('session_completed', {'session_id': s.id, 'result': s.result})
+            try:
+                from testing_app.app import socketio
+            except ImportError:
+                from app import socketio
+            if socketio:
+                socketio.emit('session_completed', {'session_id': s.id, 'result': s.result})
         except Exception:
             pass
         return jsonify({'success': True, 'session': s.to_dict()})
@@ -210,7 +219,10 @@ def abort_session(session_id):
 
 def _generate_result_summary(session: TestSession):
     """Aggregate all readings for the session into TestResult."""
-    from testing_app.models import TestReading, TestResult
+    try:
+        from testing_app.models import TestReading, TestResult
+    except ImportError:
+        from models import TestReading, TestResult
     from sqlalchemy import func
 
     settings = TestSettings.get()

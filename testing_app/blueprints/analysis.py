@@ -1,9 +1,14 @@
 """testing_app/blueprints/analysis.py — Statistical analysis and chart data."""
 from flask import Blueprint, jsonify, request
 from sqlalchemy import func
-from testing_app.extensions import db
-from testing_app.models import TestSession, TestReading, TestResult
-from testing_app.auth import require_token
+try:
+    from testing_app.extensions import db
+    from testing_app.models import TestSession, TestReading, TestResult
+    from testing_app.auth import require_token
+except ImportError:
+    from extensions import db
+    from models import TestSession, TestReading, TestResult
+    from auth import require_token
 
 analysis_bp = Blueprint('analysis', __name__, url_prefix='/api/tests/analysis')
 
