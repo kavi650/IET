@@ -174,7 +174,7 @@
             <h4>Analysis Ready</h4>
             <p>View full charts and trends for this session</p>
         </div>
-        <a class="btn-analysis" id="btnGoAnalysis" href="/analysis">
+        <a class="btn-analysis" id="btnGoAnalysis" href="#">
             <i class="fas fa-chart-line"></i> Open Analysis
         </a>
     </div>
@@ -458,7 +458,7 @@
         <button class="t-btn t-btn-outline" id="btnAbort" onclick="abortSession()">
             <i class="fas fa-stop-circle"></i> Abort
         </button>
-        <a href="/analysis" class="t-btn" style="background:rgba(0,200,255,.12);color:#00c8ff;border:1px solid rgba(0,200,255,.25);text-decoration:none;margin-left:auto">
+        <a href="#" onclick="window.location.href=TESTING_BASE+'/analysis'" class="t-btn" style="background:rgba(0,200,255,.12);color:#00c8ff;border:1px solid rgba(0,200,255,.25);text-decoration:none;margin-left:auto">
             <i class="fas fa-chart-bar"></i> Analysis Page
         </a>
     </div>
@@ -603,7 +603,7 @@ function showActivePanel() {
     document.getElementById('sessionBannerText').textContent =
         `Session ${ACTIVE_SESSION.session_code} | ${ACTIVE_SESSION.valve_id || 'No Valve ID'} | ${ACTIVE_SESSION.test_type}`;
 
-    document.getElementById('btnGoAnalysis').href = `/analysis?session_id=${ACTIVE_SESSION.id}`;
+    document.getElementById('btnGoAnalysis').href = TESTING_BASE + `/analysis?session_id=${ACTIVE_SESSION.id}`;
     setTimeout(() => { document.getElementById('analysisCta').style.display = 'flex'; }, 3000);
 
     timerSec = 0;
@@ -778,7 +778,7 @@ async function completeSession(result) {
     await apiFetch(`/api/tests/sessions/${ACTIVE_SESSION.id}/complete`, {
         method:'PUT', body: JSON.stringify({ result })
     });
-    window.location.href = `/analysis?session_id=${ACTIVE_SESSION.id}`;
+    window.location.href = TESTING_BASE + `/analysis?session_id=${ACTIVE_SESSION.id}`;
 }
 
 async function abortSession() {

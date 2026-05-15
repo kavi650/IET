@@ -42,9 +42,12 @@ class TestingConfig:
         "pool_recycle": 300,
     }
 
-    # Main app URL — used to verify access tokens
+    # Main app URL — used by auth.py to verify access tokens via HTTP.
+    # In combined deployment (DispatcherMiddleware): set to 'https://iet-seven.vercel.app'
+    # In standalone deployment: set to the main app's URL
+    # Fallback to empty string disables token verification (dev only)
     MAIN_APP_URL = _fix_main_url(
-        os.getenv('MAIN_APP_URL', 'http://127.0.0.1:5000')
+        os.getenv('MAIN_APP_URL', 'http://localhost:5000')
     )
 
     # Ollama (disabled on Render unless running a self-hosted instance)

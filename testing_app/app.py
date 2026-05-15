@@ -61,6 +61,14 @@ def create_app():
                analysis_bp, logs_bp, settings_bp, pages_bp, ai_chat_bp]:
         app.register_blueprint(bp)
 
+    # ── Inject testing_base into all templates ────────────────
+    # When mounted at /testing via DispatcherMiddleware, request.script_root = '/testing'
+    # When running standalone, request.script_root = ''
+    @app.context_processor
+    def inject_base():
+        from flask import request as _req
+        return {'testing_base': _req.script_root or ''}
+
     # ── SocketIO events (skip on Vercel) ──────────────────────
     if not _IS_VERCEL and socketio is not None:
         try:

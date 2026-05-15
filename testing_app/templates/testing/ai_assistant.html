@@ -97,7 +97,7 @@ let currentSessionData = null;
 // Check Ollama status
 async function checkOllama() {
     try {
-        const res  = await apiFetch('/api/admin/ai/status');
+        const res  = await apiFetch('/api/tests/ai/status');
         const data = await res.json();
         const up   = data.ollama === 'online';
         document.getElementById('aiStatusText').innerHTML = up
@@ -160,7 +160,7 @@ async function sendChat() {
     }
 
     try {
-        const res = await fetch('/api/tests/ai/chat', {
+        const res = await fetch(TESTING_BASE + '/api/tests/ai/chat', {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${window.AUTH_TOKEN}`, 'Content-Type': 'application/json' },
             body: JSON.stringify({ prompt: prompt + contextBlock })

@@ -223,7 +223,7 @@ async function submitRequest() {
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting…';
 
     try {
-        const res = await fetch('http://localhost:5000/api/access/request', {
+        const res = await fetch('{{ config.MAIN_APP_URL }}/api/access/request', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -257,7 +257,7 @@ async function checkStatus() {
     result.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Checking…';
 
     try {
-        const res = await fetch(`http://localhost:5000/api/access/status?email=${encodeURIComponent(email)}`);
+        const res = await fetch(`{{ config.MAIN_APP_URL }}/api/access/status?email=${encodeURIComponent(email)}`);
         if (res.status === 404) {
             result.className = 'sr-box sr-unknown';
             result.innerHTML = '<i class="fas fa-circle-exclamation"></i> No request found for this email.';
@@ -275,7 +275,7 @@ async function checkStatus() {
         result.innerHTML = `<i class="fas ${icon[data.status]}"></i> <strong>${data.status.toUpperCase()}</strong> — ${msg[data.status]}`;
     } catch(e) {
         result.className = 'sr-box sr-unknown';
-        result.innerHTML = 'Could not reach server. Make sure localhost:5000 is running.';
+        result.innerHTML = 'Could not reach verification server. Contact administrator.';
     }
 }
 </script>

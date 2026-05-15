@@ -2,13 +2,14 @@
   "version": 2,
   "builds": [
     {
-      "src": "app.py",
+      "src": "combined_app.py",
       "use": "@vercel/python",
       "config": {
         "includeFiles": [
           "static/**",
           "templates/**",
           "blueprints/**",
+          "testing_app/**",
           "*.py"
         ]
       }
@@ -17,7 +18,7 @@
   "routes": [
     {
       "src": "/(.*)",
-      "dest": "app.py"
+      "dest": "combined_app.py"
     }
   ]
 }

@@ -140,19 +140,20 @@
 
     <div class="dev-note">
         <strong>Don't have a token?</strong><br>
-        Visit <a href="http://localhost:5000/testing-access" style="color:#00c8ff" target="_blank">localhost:5000/testing-access</a>
+        Visit <a href="{{ config.MAIN_APP_URL }}/testing-access" style="color:#00c8ff" target="_blank">the main site's testing-access page</a>
         to submit an access request. Once approved by the admin, your token will be provided.
     </div>
 
     <div class="footer-link">
-        <a href="http://localhost:5000" target="_blank"><i class="fas fa-arrow-left"></i> Back to Testiny Website</a>
+        <a href="{{ config.MAIN_APP_URL }}" target="_blank"><i class="fas fa-arrow-left"></i> Back to Testiny Website</a>
     </div>
 </div>
 
 <script>
+const TESTING_BASE = '{{ testing_base }}';  // set by Flask context processor
 // If already logged in, go straight to dashboard
 if (sessionStorage.getItem('testiny_token')) {
-    window.location.href = '/dashboard';
+    window.location.href = TESTING_BASE + '/dashboard';
 }
 
 // Auto-login if token is passed as URL ?token= param (from testing_access.html)
@@ -162,7 +163,7 @@ if (sessionStorage.getItem('testiny_token')) {
     if (t) {
         document.getElementById('tokenInput').value = t;
         // Clean token from URL so it's not visible/bookmarked
-        history.replaceState({}, '', '/login');
+        history.replaceState({}, '', TESTING_BASE + '/login');
         // Auto-submit
         login();
     }
@@ -186,13 +187,13 @@ async function login() {
 
     try {
         // Verify token against main app
-        const res  = await fetch(`http://localhost:5000/api/access/verify/${token}`);
+        const res  = await fetch(`{{ config.MAIN_APP_URL }}/api/access/verify/${token}`);
         const data = await res.json();
 
         if (res.ok && data.valid) {
             sessionStorage.setItem('testiny_token', token);
             sessionStorage.setItem('testiny_user', JSON.stringify(data));
-            window.location.href = '/dashboard';
+            window.location.href = TESTING_BASE + '/dashboard';
         } else {
             errTxt.textContent = data.reason || 'Invalid or expired token.';
             errMsg.style.display = '';
@@ -200,7 +201,7 @@ async function login() {
             btn.innerHTML = '<i class="fas fa-unlock"></i> Access Testing Software';
         }
     } catch(e) {
-        errTxt.textContent = 'Could not reach main server. Make sure it is running on port 5000.';
+        errTxt.textContent = 'Could not reach verification server. Contact administrator.';
         errMsg.style.display = '';
         btn.disabled = false;
         btn.innerHTML = '<i class="fas fa-unlock"></i> Access Testing Software';
