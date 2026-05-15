@@ -743,7 +743,7 @@
                             <h2 style="margin-bottom:8px">Token Verified!</h2>
                             <p class="token-sub">Welcome, <strong id="successName"></strong>. Your session is active.
                             </p>
-                            <a id="openSoftwareLink" href="http://localhost:8501/login"
+                            <a id="openSoftwareLink" href="/testing/dashboard"
                                 style="display:inline-flex;align-items:center;gap:8px;margin-top:16px;padding:13px 28px;background:#0066ff;color:#fff;border-radius:12px;font-weight:700;font-size:15px;text-decoration:none;transition:box-shadow .2s"
                                 onmouseover="this.style.boxShadow='0 4px 20px rgba(0,102,255,.4)'"
                                 onmouseout="this.style.boxShadow='none'">
@@ -859,9 +859,8 @@
                     document.getElementById('accessFormArea').style.display = 'none';
                     document.getElementById('accessSuccessBox').style.display = '';
                     document.getElementById('successName').textContent = data.full_name || 'User';
-                    // Build the open-software link with the token embedded
-                    document.getElementById('openSoftwareLink').href =
-                        `http://localhost:8501/dashboard?token=${encodeURIComponent(token)}`;
+                        document.getElementById('openSoftwareLink').href =
+                            `/testing/dashboard?token=${encodeURIComponent(token)}`;
                 } else {
                     err.textContent = data.reason || 'Invalid or expired token.';
                     err.style.display = '';
