@@ -52,8 +52,24 @@ def create_app(config_object=Config):
     app.register_blueprint(ai_admin_bp)       # /api/admin/ai/*
 
     # ── Auto-initialise DB on first boot (needed on Render) ─────
-    with app.app_context():
-        init_db_tables(app)
+    # ── Auto-initialise DB (non-fatal on Vercel cold start) ───
+    try:
+        with app.app_context():
+            init_db_tables(app)
+    except Exception as _db_err:
+        print(f'⚠️  DB init skipped at startup: {_db_err}')
+
+    # ── Lazy DB init on first request (Vercel fallback) ───────
+    _db_initialised = {'done': False}
+
+    @app.before_request
+    def ensure_db():
+        if not _db_initialised['done']:
+            try:
+                init_db_tables(app)
+                _db_initialised['done'] = True
+            except Exception as e:
+                print(f'⚠️  DB init on request failed: {e}')
 
     # ── Global error handlers ─────────────────────────────────
     @app.errorhandler(404)

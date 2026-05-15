@@ -69,9 +69,24 @@ def create_app():
             from realtime import register_events
         register_events(socketio)
 
-    # ── Auto-init DB ──────────────────────────────────────────
-    with app.app_context():
-        db.create_all()
+    # ── Auto-init DB (non-fatal on Vercel cold start) ────────
+    try:
+        with app.app_context():
+            db.create_all()
+    except Exception as _e:
+        print(f'⚠️  DB init skipped at startup: {_e}')
+
+    # ── Lazy DB init on first request (Vercel fallback) ──────
+    _db_done = {'done': False}
+
+    @app.before_request
+    def ensure_db():
+        if not _db_done['done']:
+            try:
+                db.create_all()
+                _db_done['done'] = True
+            except Exception as e:
+                print(f'⚠️  DB init on request failed: {e}')
 
     return app
 
