@@ -83,18 +83,45 @@ def create_app():
             db.create_all()
     except Exception as _e:
         print(f'⚠️  DB init skipped at startup: {_e}')
+        try:
+            db.session.rollback()
+        except Exception:
+            pass
 
     # ── Lazy DB init on first request (Vercel fallback) ──────
     _db_done = {'done': False}
 
     @app.before_request
     def ensure_db():
+        # Always rollback any stale/broken transaction from a previous request
+        # This is critical on Vercel where connections are reused across invocations
+        try:
+            db.session.rollback()
+        except Exception:
+            pass
         if not _db_done['done']:
             try:
                 db.create_all()
                 _db_done['done'] = True
             except Exception as e:
                 print(f'⚠️  DB init on request failed: {e}')
+                try:
+                    db.session.rollback()
+                except Exception:
+                    pass
+
+    @app.teardown_request
+    def cleanup_session(exc):
+        """Always clean up session after each request — prevents transaction leaks."""
+        if exc is not None:
+            try:
+                db.session.rollback()
+            except Exception:
+                pass
+        try:
+            db.session.remove()
+        except Exception:
+            pass
 
     return app
 

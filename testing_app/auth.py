@@ -49,7 +49,19 @@ def _verify_token_db(token: str) -> dict | None:
             "company_name": result.company_name,
         }
     except Exception:
-        # If DB lookup fails for any reason, allow access (fail-open)
+        try:
+            from testing_app.extensions import db as _db
+        except ImportError:
+            try:
+                from extensions import db as _db
+            except ImportError:
+                _db = None
+        if _db:
+            try:
+                _db.session.rollback()
+            except Exception:
+                pass
+        # Fail-open: allow access if DB check fails
         return {"valid": True, "full_name": "Operator", "email": "", "company_name": ""}
 
 
