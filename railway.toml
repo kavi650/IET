@@ -1,0 +1,10 @@
+# railway.toml — Testing App deployment config for Railway.app
+# Railway supports WebSockets + SocketIO natively (unlike Vercel)
+
+[build]
+builder = "nixpacks"
+
+[deploy]
+startCommand = "gunicorn testing_wsgi:app --worker-class gthread --workers 1 --threads 4 --timeout 120"
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 3

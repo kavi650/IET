@@ -36,6 +36,12 @@ class TestingConfig:
     )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
+    # Connection pool settings for cloud databases (Neon, Supabase, Railway)
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        "pool_pre_ping": True,
+        "pool_recycle": 300,
+    }
+
     # Main app URL — used to verify access tokens
     MAIN_APP_URL = _fix_main_url(
         os.getenv('MAIN_APP_URL', 'http://127.0.0.1:5000')

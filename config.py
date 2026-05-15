@@ -6,8 +6,9 @@ load_dotenv()
 
 def _fix_db_url(url: str) -> str:
     """
-    Render supplies DATABASE_URL as 'postgres://...' but SQLAlchemy 2.x
-    requires 'postgresql://...'. Fix it transparently.
+    Normalize DATABASE_URL for SQLAlchemy 2.x compatibility.
+    - Render/Heroku: 'postgres://' → 'postgresql://'
+    - Neon/Supabase: already 'postgresql://' — no change needed
     """
     if url and url.startswith("postgres://"):
         return url.replace("postgres://", "postgresql://", 1)
@@ -33,6 +34,13 @@ class Config:
         os.getenv('DATABASE_URL', _default_uri)
     )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+
+    # Enable SSL for cloud databases (Neon, Supabase, Railway)
+    # SQLite / local Postgres don't need this — it's ignored safely
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        "pool_pre_ping": True,        # reconnect on stale connections (serverless)
+        "pool_recycle": 300,           # recycle connections every 5 min
+    }
 
     # Ollama AI Settings (disabled on Render — use env var to override)
     OLLAMA_BASE_URL = os.getenv('OLLAMA_BASE_URL', 'http://localhost:11434')
